@@ -7,17 +7,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.LinearProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.filter
  * [README.desktop.md](https://github.com/KevinnZou/compose-webview-multiplatform/blob/main/README.desktop.md)
  * for setup instructions first.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BasicWebViewSample() {
     val initialUrl = "https://github.com/KevinnZou/compose-webview-multiplatform"
@@ -75,7 +77,7 @@ internal fun BasicWebViewSample() {
                     if (navigator.canGoBack) {
                         IconButton(onClick = { navigator.navigateBack() }) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
                             )
                         }
@@ -91,9 +93,9 @@ internal fun BasicWebViewSample() {
                             contentDescription = "Error",
                             colorFilter = ColorFilter.tint(Color.Red),
                             modifier =
-                                Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(8.dp),
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(8.dp),
                         )
                     }
 
@@ -119,7 +121,7 @@ internal fun BasicWebViewSample() {
             val loadingState = state.loadingState
             if (loadingState is LoadingState.Loading) {
                 LinearProgressIndicator(
-                    progress = loadingState.progress,
+                    progress = { loadingState.progress },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -127,8 +129,8 @@ internal fun BasicWebViewSample() {
             WebView(
                 state = state,
                 modifier =
-                    Modifier
-                        .fillMaxSize(),
+                Modifier
+                    .fillMaxSize(),
                 navigator = navigator,
             )
         }

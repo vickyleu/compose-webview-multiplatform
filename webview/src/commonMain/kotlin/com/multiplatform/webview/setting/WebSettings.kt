@@ -104,4 +104,9 @@ class WebSettings {
      * iOS platform specific settings
      */
     val iOSWebSettings = PlatformWebSettings.IOSWebSettings()
+
+    /**
+     * Web platform specific settings
+     */
+    val wasmWebSettings = PlatformWebSettings.WasmWebSettings()
 }

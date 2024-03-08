@@ -14,7 +14,8 @@ import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import org.cef.browser.CefRendering
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.jetbrains.compose.resources.resource
+import org.jetbrains.compose.resources.InternalResourceApi
+import org.jetbrains.compose.resources.readResourceBytes
 
 /**
  * Desktop WebView implementation.
@@ -42,7 +43,7 @@ actual fun ActualWebView(
 /**
  * Desktop WebView implementation.
  */
-@OptIn(ExperimentalResourceApi::class)
+@OptIn(ExperimentalResourceApi::class, InternalResourceApi::class)
 @Composable
 fun DesktopWebView(
     state: WebViewState,
@@ -69,8 +70,9 @@ fun DesktopWebView(
     val fileContent by produceState("", state.content) {
         value =
             if (state.content is WebContent.File) {
-                val res = resource("assets/${(state.content as WebContent.File).fileName}")
-                res.readBytes().decodeToString().trimIndent()
+                val res = readResourceBytes("assets/${(state.content as WebContent.File).fileName}")
+//                resource()
+                res.decodeToString().trimIndent()
             } else {
                 ""
             }

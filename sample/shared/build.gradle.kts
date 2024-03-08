@@ -1,24 +1,36 @@
+import java.util.Properties
+
 plugins {
-    kotlin("multiplatform")
-    id("com.android.library")
-    id("org.jetbrains.compose")
-    kotlin("plugin.serialization")
-    id("org.jetbrains.kotlin.plugin.atomicfu")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.jetbrains.compose)
+    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.kotlin.atomicfu)
+}
+
+val xcodeConfigProperties = Properties().apply {
+    load(project.file("../xcode_config.properties").reader())
 }
 
 @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    targetHierarchy.default()
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvmTarget.get()))
+    }
 
+    applyDefaultHierarchyTemplate()
     androidTarget {
+        publishLibraryVariants("release")
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
         }
     }
 
-    jvm("desktop")
+    jvm("desktop"){
+        compilations.all {
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
+        }
+    }
 
     listOf(
         iosX64(),
@@ -27,36 +39,41 @@ kotlin {
     ).forEach {
         it.binaries.framework {
             baseName = "shared"
+            isStatic = true
+            binaryOption("bundleId", "com.kevinnzou.sample")
         }
     }
 
+    xcodeCheck()
+
     sourceSets {
-        val coroutines = "1.7.3"
         val commonMain by getting {
             dependencies {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
-                implementation(compose.material)
+                api(compose.material3)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 implementation(compose.components.resources)
-                implementation("co.touchlab:kermit:2.0.0-RC5")
                 api(project(":webview"))
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-                implementation("org.jetbrains.kotlinx:atomicfu:0.21.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+                implementation(libs.kotlinx.atomicfu)
+                implementation(libs.kermit)
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.activity:activity-compose:1.7.2")
-                api("androidx.appcompat:appcompat:1.6.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines")
+                api(libs.androidx.appcompat)
+                api(libs.androidx.activity.compose)
+                implementation(libs.kotlinx.coroutines.android)
             }
         }
         val desktopMain by getting {
             dependencies {
-                implementation(compose.desktop.common)
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
+                implementation(compose.desktop.common) {
+                    exclude(compose.material)
+                }
+                implementation(libs.kotlinx.coroutines.swing)
             }
         }
         val commonTest by getting {
@@ -69,20 +86,38 @@ kotlin {
 
 android {
     namespace = "com.kevinnzou.sample"
-    compileSdk = 34
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
-    kotlin {
-        jvmToolchain(17)
+}
+
+
+
+fun xcodeCheck() {
+    getBuildRelativeDir().apply {
+        val dir = this
+        project.file("../iosApp/Configuration/Config.xcconfig").apply {
+            updateXcodeConfigFile(
+                // $(SRCROOT) xcode项目根路径
+                // $(CONFIGURATION) Debug/Release
+                // $(SDK_NAME) iphonesimulator17.2/iphoneos17.2
+                { "KMM_BUILD_DIR" to dir }, // 此目录已弃用,kmm新版本中已处理build目录修改后找不到search_path的问题
+                { "BUNDLE_ID" to xcodeConfigProperties.getProperty("BundleId") },
+                { "TEAM_ID" to xcodeConfigProperties.getProperty("TeamId") },
+                { "APP_NAME" to xcodeConfigProperties.getProperty("AppName") }
+            )
+        }
     }
+    processPlistFiles(project.projectDir.parentFile)
 }

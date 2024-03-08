@@ -220,4 +220,13 @@ sealed class PlatformWebSettings {
          */
         var showVerticalScrollIndicator: Boolean = true,
     ) : PlatformWebSettings()
+
+    /**
+     * Wasm web settings
+     */
+    data class WasmWebSettings(
+        var offScreenRendering: Boolean = false,
+        var transparent: Boolean = true,
+        var disablePopupWindows: Boolean = false,
+        ): PlatformWebSettings()
 }

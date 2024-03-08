@@ -1,18 +1,20 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    kotlin("multiplatform")
-    id("org.jetbrains.compose")
-}
-
-repositories {
-    google()
-    mavenCentral()
-    maven { url = uri("https://jogamp.org/deployment/maven") }
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.jetbrains.compose)
 }
 
 kotlin {
-    jvm()
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvmTarget.get()))
+    }
+
+    jvm{
+        compilations.all {
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
+        }
+    }
     sourceSets {
         val jvmMain by getting {
             dependencies {
@@ -22,6 +24,7 @@ kotlin {
         }
     }
 }
+
 
 compose.desktop {
     application {

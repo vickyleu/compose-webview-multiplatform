@@ -1,3 +1,5 @@
+@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+
 package com.multiplatform.webview.web
 
 import com.multiplatform.webview.util.KLogger

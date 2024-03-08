@@ -1,3 +1,4 @@
+APP_NAME=ComposeWebview
+BUNDLE_ID=com.kevinnzou.sample
+KMM_BUILD_DIR=../build/shared
 TEAM_ID=
-BUNDLE_ID=com.myapplication.MyApplication
-APP_NAME=My application

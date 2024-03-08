@@ -1,11 +1,19 @@
 plugins {
-    kotlin("multiplatform")
-    id("com.android.application")
-    id("org.jetbrains.compose")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.jetbrains.compose)
 }
 
 kotlin {
-    androidTarget()
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvmTarget.get()))
+    }
+
+    androidTarget {
+        compilations.all {
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
+        }
+    }
     sourceSets {
         val androidMain by getting {
             dependencies {
@@ -15,24 +23,23 @@ kotlin {
     }
 }
 
+
+
 android {
-    compileSdk = (findProperty("android.compileSdk") as String).toInt()
-    namespace = "com.multiplatform.webview"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    namespace = "com.multiplatform.webview.sample"
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
     defaultConfig {
-        applicationId = "com.multiplatform.webview"
-        minSdk = (findProperty("android.minSdk") as String).toInt()
-        targetSdk = (findProperty("android.targetSdk") as String).toInt()
+        applicationId = "com.kevinnzou.sample"
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        jvmToolchain(17)
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
 }

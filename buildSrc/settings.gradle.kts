@@ -1,28 +1,26 @@
 @file:Suppress("UnstableApiUsage")
 
-rootProject.name = "compose-webview-multiplatform"
+rootProject.name = "buildSrc"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-
-include(":webview")
-include(":sample:androidApp")
-include(":sample:desktopApp")
-include(":sample:shared")
-
 pluginManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        google {
-            content {
-                includeGroupByRegex(".*google.*")
-                includeGroupByRegex(".*android.*")
+    listOf(repositories, dependencyResolutionManagement.repositories).forEach {
+        it.apply {
+            mavenCentral()
+            gradlePluginPortal()
+            google {
+                content {
+                    includeGroupByRegex(".*google.*")
+                    includeGroupByRegex(".*android.*")
+                }
             }
+            maven(url = "https://androidx.dev/storage/compose-compiler/repository")
+            maven(url = "https://maven.pkg.jetbrains.space/public/p/compose/dev")
         }
-        maven(url = "https://androidx.dev/storage/compose-compiler/repository")
-        maven(url = "https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 }
+
+
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
@@ -68,14 +66,15 @@ dependencyResolutionManagement {
             filter { includeModuleByRegex(".*", ".*kotlin-native-prebuilt.*") }
         }
         maven {
-            url = uri("https://jitpack.io")
+            setUrl("https://jitpack.io")
             content {
                 includeGroupByRegex("com.github.*")
             }
         }
-        maven {
-            // kcf is not available in maven central
-            url = uri("https://jogamp.org/deployment/maven")
+    }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
         }
     }
 }

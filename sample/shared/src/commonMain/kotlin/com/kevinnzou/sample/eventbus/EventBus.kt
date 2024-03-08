@@ -13,6 +13,8 @@ typealias Observer = (Any) -> Unit
 object EventBus {
     private val observers = atomic(mutableMapOf<KClass<out Any>, List<Observer>>())
 
+
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> observe(
         clazz: KClass<T>,
         obs: (T) -> Unit,
