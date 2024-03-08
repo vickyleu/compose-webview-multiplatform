@@ -1,24 +1,30 @@
-@file:Suppress("UNUSED_VARIABLE", "OPT_IN_USAGE")
-
 plugins {
-    kotlin("multiplatform")
-    id("com.android.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.dokka")
-    id("com.vanniktech.maven.publish")
-    kotlin("plugin.serialization")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.jetbrains.compose)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.maven.publish)
+    alias(libs.plugins.kotlin.plugin.serialization)
 }
 
 kotlin {
 //    explicitApi = ExplicitApiMode.Strict
 
-    targetHierarchy.default()
-
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvmTarget.get()))
+    }
+    applyDefaultHierarchyTemplate()
     androidTarget {
         publishLibraryVariants("release")
+        compilations.all {
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
+        }
     }
-
-    jvm("desktop")
+    jvm("desktop"){
+        compilations.all {
+            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
+        }
+    }
 
     listOf(
         iosX64(),
@@ -28,28 +34,32 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "webview"
             isStatic = true
+            binaryOption("bundleId", "com.multiplatform.webview")
         }
         iosTarget.setUpiOSObserver()
     }
 
     sourceSets {
-        val coroutinesVersion = extra["coroutines.version"] as String
         val commonMain by getting {
             dependencies {
+                implementation(project.dependencies.platform(libs.compose.bom))
+                implementation(project.dependencies.platform(libs.coroutines.bom))
+                implementation(project.dependencies.platform(libs.kotlin.bom))
+
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 implementation(compose.components.resources)
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-                implementation("co.touchlab:kermit:2.0.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kermit)
+                implementation(libs.kotlinx.serialization.json)
             }
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.activity:activity-compose:1.8.2")
-                api("androidx.webkit:webkit:1.10.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
+                api(libs.androidx.activity.compose)
+                api(libs.webkit)
+                implementation(libs.kotlinx.coroutines.android)
             }
         }
         val iosX64Main by getting
@@ -63,16 +73,19 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
-                implementation(compose.desktop.common)
-                api("dev.datlag:kcef:2024.01.07.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutinesVersion")
+                implementation(compose.desktop.common) {
+                    exclude(compose.material)
+                }
+                api(libs.kcef)
+                implementation(libs.kotlinx.coroutines.swing)
             }
         }
     }
 }
 
+
 android {
-    compileSdk = (findProperty("android.compileSdk") as String).toInt()
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
     namespace = "com.multiplatform.webview"
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -80,14 +93,11 @@ android {
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
     defaultConfig {
-        minSdk = (findProperty("android.minSdk") as String).toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        jvmToolchain(17)
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
     }
 }
 

@@ -181,7 +181,9 @@ fun AccompanistWebView(
                     state.webSettings.let {
                         javaScriptEnabled = it.isJavaScriptEnabled
                         userAgentString = it.customUserAgentString
+                        @Suppress("DEPRECATION")
                         allowFileAccessFromFileURLs = it.allowFileAccessFromFileURLs
+                        @Suppress("DEPRECATION")
                         allowUniversalAccessFromFileURLs = it.allowUniversalAccessFromFileURLs
                         setSupportZoom(it.supportZoom)
                     }

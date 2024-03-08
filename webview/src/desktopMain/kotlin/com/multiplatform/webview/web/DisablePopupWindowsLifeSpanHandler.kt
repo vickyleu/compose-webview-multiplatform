@@ -8,11 +8,11 @@ class DisablePopupWindowsLifeSpanHandler : CefLifeSpanHandlerAdapter() {
     override fun onBeforePopup(
         browser: CefBrowser?,
         frame: CefFrame?,
-        target_url: String?,
-        target_frame_name: String?,
+        targetUrl: String?,
+        targetFrameName: String?,
     ): Boolean {
-        if (target_url != null) {
-            browser?.loadURL(target_url)
+        if (targetUrl != null) {
+            browser?.loadURL(targetUrl)
         }
         return true
     }
