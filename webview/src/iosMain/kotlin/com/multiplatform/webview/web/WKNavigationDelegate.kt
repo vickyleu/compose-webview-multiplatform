@@ -10,12 +10,15 @@ import com.multiplatform.webview.util.notZero
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.HTTPMethod
+import kotlinx.cinterop.ObjCSignatureOverride
 import platform.Foundation.NSError
 import platform.Foundation.allHTTPHeaderFields
+import platform.WebKit.WKFrameInfo
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
 import platform.WebKit.WKNavigationDelegateProtocol
+import platform.WebKit.WKUIDelegateProtocol
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
 
@@ -36,6 +39,7 @@ class WKNavigationDelegate(
     /**
      * Called when the web view begins to receive web content.
      */
+    @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didStartProvisionalNavigation: WKNavigation?,
@@ -48,9 +52,27 @@ class WKNavigationDelegate(
         }
     }
 
+    override fun webView(
+        webView: WKWebView,
+        decidePolicyForNavigationAction: WKNavigationAction,
+        decisionHandler: (WKNavigationActionPolicy) -> Unit
+    ) {
+        val url =
+            decidePolicyForNavigationAction.request.URL?.absoluteString() ?: return Unit.apply {
+                decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+            }
+        val naviResult = navigator.navigatorTo(url)
+        if (naviResult) {
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+        } else {
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+        }
+    }
+
     /**
      * Called when the web view receives a server redirect.
      */
+    @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didCommitNavigation: WKNavigation?,
@@ -68,6 +90,7 @@ class WKNavigationDelegate(
      * Called when the web view finishes loading.
      */
     @OptIn(ExperimentalForeignApi::class)
+    @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didFinishNavigation: WKNavigation?,
@@ -95,6 +118,7 @@ class WKNavigationDelegate(
     /**
      * Called when the web view fails to load content.
      */
+    @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didFailProvisionalNavigation: WKNavigation?,

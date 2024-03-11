@@ -1,6 +1,6 @@
 [versions]
-activityCompose = "1.8.2"
-agp = "8.3.0"
+activityCompose = "1.9.0"
+agp = "8.3.2"
 #noinspection GradleDependency
 android-compileSdk = "34"
 android-minSdk = "24"
@@ -8,13 +8,16 @@ android-targetSdk = "34"
 annotations = "23.0.0"
 kcef = "2024.01.07.1"
 kermit = "2.0.2"
-kotlin = "2.0.0-Beta4"
+kotlin = "2.0.0-RC1"
 jvmTarget = "17"
 #noinspection GradleDependency
-compose-plugin = "1.6.10-dev1498"
+compose-plugin = "1.6.10-beta01"
+dokka = "1.9.20"
+#maven-publish = "0.25.3"
+ktlint = "11.6.1"
 kotlinxSerializationJson = "1.6.3"
 webkit = "1.10.0"
-jetpack-compose-bom = "2024.02.02"
+jetpack-compose-bom = "2024.04.01"
 coroutines-bom = "1.8.0"
 kotlinx-atomicfu = "0.23.2"
 appcompat = "1.6.1"
@@ -51,9 +54,9 @@ kotlin-plugin-atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
-dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
-maven-publish = { id = "com.vanniktech.maven.publish", version = "0.25.3" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.6.1" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+#maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 
 # 下面这个是假的，只是为了占位
 jvmTargetPlaceHolder = { id = "org.jdk.kotlin.holder", version.ref = "jvmTarget" }

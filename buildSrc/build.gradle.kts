@@ -8,14 +8,6 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
 }
 
-afterEvaluate {
-    tasks.named("clean", Delete::class) {
-        delete(rootDir.resolve("**/.idea"))
-        delete(rootDir.resolve("**/.gradle"))
-        delete(rootDir.resolve("**/.kotlin"))
-    }
-}
-
 
 configurations.all {
     resolutionStrategy {
