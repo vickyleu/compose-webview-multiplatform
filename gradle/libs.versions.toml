@@ -11,10 +11,10 @@ kermit = "2.0.2"
 kotlin = "2.0.0-Beta4"
 jvmTarget = "17"
 #noinspection GradleDependency
-compose-plugin = "1.6.10-dev1457"
+compose-plugin = "1.6.10-dev1498"
 kotlinxSerializationJson = "1.6.3"
 webkit = "1.10.0"
-jetpack-compose-bom = "2024.02.01"
+jetpack-compose-bom = "2024.02.02"
 coroutines-bom = "1.8.0"
 kotlinx-atomicfu = "0.23.2"
 appcompat = "1.6.1"
@@ -44,7 +44,6 @@ webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-kotlin-atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
 kotlin-plugin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-plugin-atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
