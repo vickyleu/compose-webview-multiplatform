@@ -1,10 +1,7 @@
-import com.android.tools.r8.internal.rf
-
 //需要判断是否是jitpack的构建，如果是jitpack的构建，需要将build目录设置到项目根目录下
 if (System.getenv("JITPACK") == null) {
     rootProject.layout.buildDirectory.set(file("./build"))
 }
-
 
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
@@ -15,7 +12,6 @@ plugins {
     alias(libs.plugins.android.library).apply(false)
     alias(libs.plugins.jetbrains.compose).apply(false)
     alias(libs.plugins.dokka)
-    alias(libs.plugins.maven.publish).apply(false)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.kotlin.plugin.atomicfu)
 
@@ -23,6 +19,10 @@ plugins {
 val javaVersion = JavaVersion.toVersion(libs.versions.jvmTarget.get())
 check(JavaVersion.current().isCompatibleWith(javaVersion)) {
     "This project needs to be run with Java ${javaVersion.getMajorVersion()} or higher (found: ${JavaVersion.current()})."
+}
+
+allprojects {
+    tasks.register("testClasses")
 }
 
 subprojects {
@@ -35,9 +35,6 @@ subprojects {
         configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
             version.set("1.0.1")
         }
-        task("testClasses") {
-            //https://github.com/robolectric/robolectric/issues/1802#issuecomment-137401530
-        }
     }
     configurations.all {
         exclude(group = "org.jetbrains.compose.material", module = "material")
@@ -45,10 +42,11 @@ subprojects {
             eachDependency {
                 if (requested.group == "org.jetbrains.kotlin") {
                     useVersion(libs.versions.kotlin.get())
-                }else if (requested.group.startsWith("org.jetbrains.compose.")
-                    && !requested.group.endsWith(".compiler")) {
+                } else if (requested.group.startsWith("org.jetbrains.compose.")
+                    && !requested.group.endsWith(".compiler")
+                ) {
                     useVersion(libs.versions.compose.plugin.get())
-                }else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
+                } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
                     useVersion(libs.versions.annotations.get())
                 }
             }
@@ -62,7 +60,7 @@ tasks.register<Copy>("setUpGitHooks") {
     into("$rootDir/.git/hooks")
 }
 
-tasks{
+tasks {
     task<Delete>("clean") {
         delete(rootProject.layout.buildDirectory.get().asFile)
         delete(rootDir.resolve("**/.idea"))

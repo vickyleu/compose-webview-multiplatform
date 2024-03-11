@@ -65,8 +65,7 @@ fun IOSWebView(
 
     UIKitView(
         factory = {
-            val config =
-                WKWebViewConfiguration().apply {
+            val config =  WKWebViewConfiguration().apply {
                     allowsInlineMediaPlayback = true
                     defaultWebpagePreferences.allowsContentJavaScript = state.webSettings.isJavaScriptEnabled
                     preferences.apply {
@@ -85,6 +84,7 @@ fun IOSWebView(
                 this.addProgressObservers(
                     observer = observer,
                 )
+                this.UIDelegate = navigationDelegate
                 this.navigationDelegate = navigationDelegate
 
                 setOpaque(false)

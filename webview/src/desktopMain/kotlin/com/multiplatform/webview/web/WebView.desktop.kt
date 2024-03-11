@@ -10,9 +10,23 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.util.KLogger
 import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
+import org.cef.CefSettings
+import org.cef.browser.CefBrowser
+import org.cef.browser.CefFrame
 import org.cef.browser.CefRendering
+import org.cef.callback.CefJSDialogCallback
+import org.cef.handler.CefDisplayHandlerAdapter
+import org.cef.handler.CefJSDialogHandler
+import org.cef.handler.CefJSDialogHandler.JSDialogType.JSDIALOGTYPE_ALERT
+import org.cef.handler.CefJSDialogHandler.JSDialogType.JSDIALOGTYPE_CONFIRM
+import org.cef.handler.CefJSDialogHandler.JSDialogType.JSDIALOGTYPE_PROMPT
+import org.cef.handler.CefJSDialogHandlerAdapter
+import org.cef.handler.CefRequestHandlerAdapter
+import org.cef.misc.BoolRef
+import org.cef.network.CefRequest
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.InternalResourceApi
 import org.jetbrains.compose.resources.readResourceBytes
@@ -59,9 +73,66 @@ fun DesktopWebView(
             KCEF.newClientOrNullBlocking()?.also {
                 if (state.webSettings.desktopWebSettings.disablePopupWindows) {
                     it.addLifeSpanHandler(DisablePopupWindowsLifeSpanHandler())
+                    it.addJSDialogHandler(object : CefJSDialogHandlerAdapter() {
+                        override fun onJSDialog(
+                            browser: CefBrowser?,
+                            origin_url: String?,
+                            dialog_type: CefJSDialogHandler.JSDialogType?,
+                            message_text: String?,
+                            default_prompt_text: String?,
+                            callback: CefJSDialogCallback?,
+                            suppress_message: BoolRef?
+                        ): Boolean {
+                            val msgText = message_text ?: return false.apply {
+                                callback?.Continue(false, null)
+                            }
+                            when (dialog_type) {
+                                JSDIALOGTYPE_ALERT,
+                                JSDIALOGTYPE_CONFIRM -> {
+                                    navigator.alert(msgText) {
+                                        callback?.Continue(it, null)
+                                    }
+                                }
+
+                                JSDIALOGTYPE_PROMPT -> {
+                                    navigator.prompt(msgText) { it, msg ->
+                                        callback?.Continue(it, msg)
+                                    }
+                                }
+
+                                null -> callback?.Continue(false, null)
+                            }
+                            return false
+                        }
+                    })
+                    it.addDisplayHandler(object : CefDisplayHandlerAdapter() {
+                        override fun onConsoleMessage(
+                            browser: CefBrowser?,
+                            level: CefSettings.LogSeverity?,
+                            message: String?,
+                            source: String?,
+                            line: Int
+                        ): Boolean {
+                            KLogger.info {
+                                "kCFJsMessageHandler: $message"
+                            }
+                            return false
+                        }
+                    })
+                    it.addRequestHandler(object : CefRequestHandlerAdapter() {
+                        override fun onBeforeBrowse(
+                            browser: CefBrowser?, frame: CefFrame?,
+                            request: CefRequest?, user_gesture: Boolean, is_redirect: Boolean
+                        ): Boolean {
+                            return navigator.navigatorTo(request?.url ?: return false)
+                        }
+                    })
                 } else {
                     if (it.getLifeSpanHandler() is DisablePopupWindowsLifeSpanHandler) {
                         it.removeLifeSpanHandler()
+                        it.removeJSDialogHandler()
+                        it.removeDisplayHandler()
+                        it.removeRequestHandler()
                     }
                 }
             }

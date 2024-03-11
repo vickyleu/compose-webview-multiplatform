@@ -113,6 +113,9 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
      */
     private val navigationEvents: MutableSharedFlow<NavigationEvent> = MutableSharedFlow(replay = 1)
 
+
+    private var navigatorListener: BaseNavigator? = null
+
     /**
      * Handles navigation events from the composable and calls the appropriate method on the
      * [IWebView].
@@ -290,6 +293,31 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
      */
     fun stopLoading() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
+    }
+
+    fun alert(message: String, callback: (Boolean) -> Unit): Boolean {
+        coroutineScope.launch {
+            val listener = navigatorListener ?: return@launch
+            listener.alert(message, callback)
+        }
+        return true
+    }
+
+    fun prompt(message: String, callback: (Boolean, String?) -> Unit): Boolean {
+        coroutineScope.launch {
+            val listener = navigatorListener ?: return@launch
+            listener.prompt(message, callback)
+        }
+        return true
+    }
+
+    fun navigatorTo(url: String): Boolean {
+        val listener = navigatorListener ?: return true
+        return listener.navigatorTo(url)
+    }
+
+    fun setNavigatorListener(listener: BaseNavigator) {
+        navigatorListener = listener
     }
 }
 
