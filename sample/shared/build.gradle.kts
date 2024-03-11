@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.plugin.serialization)
-    alias(libs.plugins.kotlin.atomicfu)
+    alias(libs.plugins.kotlin.plugin.atomicfu)
 }
 
 val xcodeConfigProperties = Properties().apply {

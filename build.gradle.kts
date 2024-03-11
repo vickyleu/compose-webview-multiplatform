@@ -17,7 +17,7 @@ plugins {
     alias(libs.plugins.dokka)
     alias(libs.plugins.maven.publish).apply(false)
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.kotlin.atomicfu)
+    alias(libs.plugins.kotlin.plugin.atomicfu)
 
 }
 val javaVersion = JavaVersion.toVersion(libs.versions.jvmTarget.get())
