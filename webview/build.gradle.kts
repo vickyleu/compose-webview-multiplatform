@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.android.library)
     alias(libs.plugins.dokka)
+    alias(libs.plugins.compose.compiler)
 //    alias(libs.plugins.maven.publish)
     alias(libs.plugins.kotlin.plugin.serialization)
     id("maven-publish")
@@ -136,7 +137,7 @@ buildscript {
     }
 }
 group = "com.vickyleu.webview"
-version = "1.0.0"
+version = "1.0.2"
 
 tasks.withType<PublishToMavenRepository> {
     val isMac = getCurrentOperatingSystem().isMacOsX
