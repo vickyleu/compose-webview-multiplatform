@@ -207,6 +207,7 @@ extra["githubToken"] = properties["github.token"] as? String
     ?: environment["GITHUB_TOKEN"] ?: ""
 
 publishing {
+
     val projectName = rootProject.name
     repositories {
         /*maven {
@@ -230,49 +231,57 @@ publishing {
             }
         }
     }
-    publications.withType<MavenPublication> {
-        artifact(javadocJar) // Required a workaround. See below
-        pom {
-            url = "https://github.com/vickyleu/${projectName}"
-            name = projectName
-            description = """
+    afterEvaluate {
+        publications.withType<MavenPublication> {
+            artifact(javadocJar) // Required a workaround. See below
+            version = project.version.toString()
+            groupId = project.group.toString()
+            artifactId=artifactId
+                .replace("compose-", "")
+                .replace("-multiplatform", "")
+            pom {
+                url = "https://github.com/vickyleu/${projectName}"
+                name = projectName
+                description = """
                 Visit the project on GitHub to learn more.
             """.trimIndent()
-            inceptionYear = "2024"
-            licenses {
-                license {
-                    name = "Apache-2.0 License"
-                    url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                inceptionYear = "2024"
+                licenses {
+                    license {
+                        name = "Apache-2.0 License"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
                 }
-            }
-            developers {
-                developer {
-                    id = "kevinnzou"
-                    name = "kevinnzou"
-                    email = ""
-                    roles = listOf("Netease Mobile Developer")
-                    timezone = "GMT+8"
+                developers {
+                    developer {
+                        id = "kevinnzou"
+                        name = "kevinnzou"
+                        email = ""
+                        roles = listOf("Netease Mobile Developer")
+                        timezone = "GMT+8"
+                    }
                 }
-            }
-            contributors {
-                // contributor {}
-            }
-            scm {
-                tag = "HEAD"
-                url = "https://github.com/vickyleu/${projectName}"
-                connection = "scm:git:github.com/vickyleu/${projectName}.git"
-                developerConnection = "scm:git:ssh://github.com/vickyleu/${projectName}.git"
-            }
-            issueManagement {
-                system = "GitHub"
-                url = "https://github.com/vickyleu/${projectName}/issues"
-            }
-            ciManagement {
-                system = "GitHub Actions"
-                url = "https://github.com/vickyleu/${projectName}/actions"
+                contributors {
+                    // contributor {}
+                }
+                scm {
+                    tag = "HEAD"
+                    url = "https://github.com/vickyleu/${projectName}"
+                    connection = "scm:git:github.com/vickyleu/${projectName}.git"
+                    developerConnection = "scm:git:ssh://github.com/vickyleu/${projectName}.git"
+                }
+                issueManagement {
+                    system = "GitHub"
+                    url = "https://github.com/vickyleu/${projectName}/issues"
+                }
+                ciManagement {
+                    system = "GitHub Actions"
+                    url = "https://github.com/vickyleu/${projectName}/actions"
+                }
             }
         }
     }
+
 }
 
 // TODO: Remove after https://youtrack.jetbrains.com/issue/KT-46466 is fixed
