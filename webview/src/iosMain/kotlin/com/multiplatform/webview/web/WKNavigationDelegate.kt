@@ -1,4 +1,6 @@
-@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE",
+    "DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES"
+)
 
 package com.multiplatform.webview.web
 

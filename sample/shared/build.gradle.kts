@@ -84,7 +84,9 @@ kotlin {
         }
     }
 }
-
+compose {
+    kotlinCompilerPlugin = "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:${libs.versions.kotlin.get()}"
+}
 android {
     namespace = "com.kevinnzou.sample"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
