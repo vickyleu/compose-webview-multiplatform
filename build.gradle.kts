@@ -18,15 +18,15 @@ if (System.getenv("JITPACK") == null) {
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
-    alias(libs.plugins.kotlin.multiplatform).apply(false)
-    alias(libs.plugins.kotlin.plugin.parcelize).apply(false)
-    alias(libs.plugins.android.application).apply(false)
-    alias(libs.plugins.android.library).apply(false)
+    id(libs.plugins.kotlin.multiplatform.get().pluginId).apply(false)
+    id(libs.plugins.kotlin.plugin.parcelize.get().pluginId).apply(false)
+    id(libs.plugins.android.application.get().pluginId).apply(false)
+    id(libs.plugins.android.library.get().pluginId).apply(false)
     alias(libs.plugins.jetbrains.compose).apply(false)
     alias(libs.plugins.compose.compiler).apply(false)
     alias(libs.plugins.dokka)
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.kotlin.plugin.atomicfu)
+    alias(libs.plugins.kotlin.atomicfu)
 
 }
 val javaVersion = JavaVersion.toVersion(libs.versions.jvmTarget.get())
@@ -45,9 +45,9 @@ subprojects {
     afterEvaluate {
         apply(plugin = libs.plugins.ktlint.get().pluginId) // Version should be inherited from parent
         // Optionally configure plugin
-        configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-            version.set("1.0.1")
-        }
+//        configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+//            version.set("1.0.1")
+//        }
     }
     configurations.all {
         exclude(group = "org.jetbrains.compose.material", module = "material")
@@ -204,17 +204,17 @@ tasks.register<Copy>("setUpGitHooks") {
     into("$rootDir/.git/hooks")
 }
 
-tasks {
-    task<Delete>("clean") {
-        delete(rootProject.layout.buildDirectory.get().asFile)
-        delete(rootDir.resolve("**/.idea"))
-        delete(rootDir.resolve("**/.gradle"))
-        delete(rootDir.resolve("**/.kotlin"))
-        project(":sample").projectDir.apply {
-            delete(resolve("iosApp/iosApp.xcworkspace"))
-            delete(resolve("iosApp/Pods"))
-            delete(resolve("iosApp/iosApp.xcodeproj/project.xcworkspace"))
-            delete(resolve("iosApp/iosApp.xcodeproj/xcuserdata"))
-        }
-    }
-}
+//tasks {
+//    task<Delete>("clean") {
+//        delete(rootProject.layout.buildDirectory.get().asFile)
+//        delete(rootDir.resolve("**/.idea"))
+//        delete(rootDir.resolve("**/.gradle"))
+//        delete(rootDir.resolve("**/.kotlin"))
+//        project(":sample").projectDir.apply {
+//            delete(resolve("iosApp/iosApp.xcworkspace"))
+//            delete(resolve("iosApp/Pods"))
+//            delete(resolve("iosApp/iosApp.xcodeproj/project.xcworkspace"))
+//            delete(resolve("iosApp/iosApp.xcodeproj/xcuserdata"))
+//        }
+//    }
+//}

@@ -8,13 +8,13 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    id(libs.plugins.kotlin.multiplatform.get().pluginId)
     alias(libs.plugins.jetbrains.compose)
-    alias(libs.plugins.android.library)
+    id(libs.plugins.android.library.get().pluginId)
     alias(libs.plugins.dokka)
     alias(libs.plugins.compose.compiler)
 //    alias(libs.plugins.maven.publish)
-    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.kotlin.serialization)
     id("maven-publish")
 //    id("signing")
 }
@@ -68,7 +68,7 @@ kotlin {
                 implementation(compose.components.resources)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kermit)
-                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlin.serialization.json)
             }
         }
 
@@ -76,7 +76,7 @@ kotlin {
             dependencies {
                 api(libs.androidx.activity.compose)
                 api(libs.webkit)
-                implementation(libs.kotlinx.coroutines.android)
+                implementation(libs.coroutines.android)
             }
         }
         iosMain {
@@ -91,7 +91,7 @@ kotlin {
                     exclude(compose.material)
                 }
                 api(libs.kcef)
-                implementation(libs.kotlinx.coroutines.swing)
+                implementation(libs.coroutines.swing)
             }
         }
     }
