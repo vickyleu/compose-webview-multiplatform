@@ -1,6 +1,6 @@
 [versions]
 activityCompose = "1.9.0"
-agp = "8.4.0"
+agp = "8.5.0"
 #noinspection GradleDependency
 android-compileSdk = "34"
 android-minSdk = "24"
@@ -8,19 +8,19 @@ android-targetSdk = "34"
 annotations = "23.0.0"
 kcef = "2024.01.07.1"
 kermit = "2.0.2"
-kotlin = "2.0.0-RC3"
+kotlin = "2.0.0"
 jvmTarget = "17"
 #noinspection GradleDependency
-compose-plugin = "1.6.10-rc03"
+compose-plugin = "1.6.11"
 dokka = "1.9.20"
 #maven-publish = "0.25.3"
 ktlint = "12.1.1"
 kotlinxSerializationJson = "1.6.3"
 webkit = "1.11.0"
-jetpack-compose-bom = "2024.05.00"
+jetpack-compose-bom = "2024.06.00"
 coroutines-bom = "1.8.1"
 kotlinx-atomicfu = "0.24.0"
-appcompat = "1.6.1"
+appcompat = "1.7.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "jetpack-compose-bom" }
