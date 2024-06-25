@@ -2,6 +2,8 @@ package com.multiplatform.webview.web
 
 import android.content.Context
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.os.Build
 import android.view.View
 import android.view.WindowManager
@@ -93,6 +95,12 @@ actual fun ActualWebView(
             override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
                 val v = view?:return
                 val win = windowManager?:return
+                println("v:::$v")
+                // 进入视频全屏
+                (context as Activity).window.setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
+                (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE; // 横屏
+                (context as Activity).window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 // 此处的 view 就是全屏的视频播放界面，需要把它添加到我们的界面上
                 win.addView(
                     v,
@@ -100,6 +108,7 @@ actual fun ActualWebView(
                 )
                 // 去除状态栏和导航按钮
                 fullScreen(v)
+//                callback?.onCustomViewHidden()
                 fullScreenView = v
             }
             @SuppressLint("ObsoleteSdkInt")
@@ -120,6 +129,10 @@ actual fun ActualWebView(
                 }
             }
             override fun onHideCustomView() {
+                println("onHideCustomView")
+                (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; // 横屏
+                (context as Activity).window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                (context as Activity).window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
                 // 退出全屏播放，我们要把之前添加到界面上的视频播放界面移除
                 windowManager?.removeViewImmediate(fullScreenView)
                 fullScreenView = null
