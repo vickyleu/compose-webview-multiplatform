@@ -85,7 +85,7 @@ kotlin {
 
         }
         val desktopMain by getting {
-            dependsOn(commonMain.get())
+//            dependsOn(commonMain.get())
             dependencies {
                 implementation(compose.desktop.common) {
                     exclude(compose.material)
@@ -96,9 +96,7 @@ kotlin {
         }
     }
 }
-compose {
-    kotlinCompilerPlugin = "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:${libs.versions.kotlin.get()}"
-}
+
 android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     namespace = "com.multiplatform.webview"
