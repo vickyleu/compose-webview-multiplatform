@@ -105,6 +105,7 @@ fun WebView(
                     // double check the loading state to make sure the WebView is loaded.
                     if (state.loadingState is LoadingState.Finished) {
                         wv.injectJsBridge()
+                        webViewJsBridge.registerDelegateMethod()
                     }
                 }
             }

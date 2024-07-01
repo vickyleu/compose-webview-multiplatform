@@ -1,6 +1,7 @@
 package com.multiplatform.webview.jsbridge
 
 import androidx.compose.runtime.Immutable
+import com.multiplatform.webview.web.IWebView
 import com.multiplatform.webview.web.WebViewNavigator
 
 /**
@@ -34,5 +35,17 @@ internal class JsMessageDispatcher {
 
     fun clear() {
         jsHandlerMap.clear()
+    }
+
+    fun postWebviewDelegateMethod(webView: IWebView?, jsBridgeName: String) {
+        jsHandlerMap.forEach { (key, value) ->
+            webView?.evaluateJavaScript("""
+            window.$jsBridgeName.${key} = function (params){
+                    window.$jsBridgeName.callNative('${key}',params);
+            };
+        """.trimIndent().apply {
+            println("evaluateJavaScript:$this")
+            })
+        }
     }
 }
