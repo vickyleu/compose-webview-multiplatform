@@ -40,11 +40,16 @@ internal class JsMessageDispatcher {
     fun postWebviewDelegateMethod(webView: IWebView?, jsBridgeName: String) {
         jsHandlerMap.forEach { (key, value) ->
             webView?.evaluateJavaScript("""
-            window.$jsBridgeName.${key} = function (params){
-                    window.$jsBridgeName.callNative('${key}',params);
+            window.$jsBridgeName.${key} = function (...args) {
+                if (args.length >= ${value.minimalParamCount()} && args.length <= ${value.methodParamCount()}) {
+                    const params = args.length > 1 ? { ${List(value.methodParamCount()){"'key$it': args[$it]"}.joinToString(", ")} } : args[0];
+                    window.$jsBridgeName.callNative('$key', params);
+                } else {
+                    console.error('Invalid number of arguments for ${key}');
+                }
             };
         """.trimIndent().apply {
-            println("evaluateJavaScript:$this")
+                println("evaluateJavaScript:$this")
             })
         }
     }

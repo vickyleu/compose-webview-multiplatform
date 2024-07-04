@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -194,11 +195,18 @@ fun AccompanistWebView(
                         allowFileAccess = it.allowFileAccess
                         textZoom = it.textZoom
                         useWideViewPort = it.useWideViewPort
+                        if (it.useWideViewPort) {
+                            layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
+//                            loadWithOverviewMode = true
+                            // 适应内容大小
+                            setInitialScale(1)
+                        }
                         standardFontFamily = it.standardFontFamily
                         defaultFontSize = it.defaultFontSize
                         loadsImagesAutomatically = it.loadsImagesAutomatically
                         domStorageEnabled = it.domStorageEnabled
                     }
+
                 }
             }.also {
                 val androidWebView = AndroidWebView(it, scope, webViewJsBridge)
