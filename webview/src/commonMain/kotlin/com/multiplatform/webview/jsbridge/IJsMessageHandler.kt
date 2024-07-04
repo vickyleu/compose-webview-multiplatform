@@ -19,6 +19,17 @@ interface IJsMessageHandler {
 
     fun canHandle(methodName: String) = methodName() == methodName
 
+
+    /**
+     * The number of parameters that the method takes.
+     */
+    fun methodParamCount(): Int = 1
+
+    /**
+     * The number of parameters that the method minimal takes.
+     */
+    fun minimalParamCount() = methodParamCount()
+
     /**
      * The logic to handle the JS message.
      * @param message The message that was dispatched from JS.

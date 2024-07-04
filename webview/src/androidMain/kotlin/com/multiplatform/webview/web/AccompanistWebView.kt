@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -199,6 +200,12 @@ fun AccompanistWebView(
                         allowFileAccess = it.allowFileAccess
                         textZoom = it.textZoom
                         useWideViewPort = it.useWideViewPort
+                        if(it.useWideViewPort){
+                            setInitialScale(1)
+                            loadWithOverviewMode = true
+                            this.layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
+                        }
+
                         standardFontFamily = it.standardFontFamily
                         defaultFontSize = it.defaultFontSize
                         loadsImagesAutomatically = it.loadsImagesAutomatically
