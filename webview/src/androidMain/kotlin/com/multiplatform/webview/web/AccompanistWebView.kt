@@ -234,6 +234,7 @@ fun AccompanistWebView(
                             WebSettingsCompat.DARK_STRATEGY_WEB_THEME_DARKENING_ONLY,
                         )
                     }
+
                 }
             }.also {
                 val androidWebView = AndroidWebView(it, scope, webViewJsBridge)
