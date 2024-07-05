@@ -206,6 +206,7 @@ fun AccompanistWebView(
                         loadsImagesAutomatically = it.loadsImagesAutomatically
                         domStorageEnabled = it.domStorageEnabled
                     }
+
                 }
             }.also {
                 val androidWebView = AndroidWebView(it, scope, webViewJsBridge)
