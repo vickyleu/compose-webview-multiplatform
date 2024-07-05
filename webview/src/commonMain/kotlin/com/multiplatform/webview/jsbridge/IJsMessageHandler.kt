@@ -16,9 +16,6 @@ interface IJsMessageHandler {
      * The name of the method that will be called on the JS side.
      */
     fun methodName(): String
-    fun methodParamCount(): Int
-
-    fun minimalParamCount(): Int
     fun canHandle(methodName: String) = methodName() == methodName
 
 
