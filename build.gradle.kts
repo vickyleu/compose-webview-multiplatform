@@ -26,7 +26,7 @@ plugins {
     alias(libs.plugins.compose.compiler).apply(false)
     alias(libs.plugins.dokka)
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.kotlin.atomicfu)
+    alias(libs.plugins.kotlinx.atomicfu)
 
 }
 val javaVersion = JavaVersion.toVersion(libs.versions.jvmTarget.get())
