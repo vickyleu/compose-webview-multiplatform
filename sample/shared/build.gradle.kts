@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.compose)
-    alias(libs.plugins.kotlin.plugin.serialization)
-    alias(libs.plugins.kotlin.plugin.atomicfu)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlinx.atomicfu)
     alias(libs.plugins.compose.compiler)
 }
 
@@ -22,16 +22,9 @@ kotlin {
     applyDefaultHierarchyTemplate()
     androidTarget {
         publishLibraryVariants("release")
-        compilations.all {
-            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
-        }
     }
 
-    jvm("desktop"){
-        compilations.all {
-            kotlinOptions.jvmTarget = libs.versions.jvmTarget.get()
-        }
-    }
+    jvm("desktop")
 
     listOf(
         iosX64(),
@@ -58,7 +51,7 @@ kotlin {
                 api(project(":webview"))
                 implementation(libs.kotlinx.atomicfu)
                 implementation(libs.kermit)
-                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlin.serialization.json)
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
@@ -66,7 +59,7 @@ kotlin {
             dependencies {
                 api(libs.androidx.appcompat)
                 api(libs.androidx.activity.compose)
-                implementation(libs.kotlinx.coroutines.android)
+                implementation(libs.coroutines.android)
             }
         }
         val desktopMain by getting {
@@ -74,7 +67,7 @@ kotlin {
                 implementation(compose.desktop.common) {
                     exclude(compose.material)
                 }
-                implementation(libs.kotlinx.coroutines.swing)
+                implementation(libs.coroutines.swing)
             }
         }
         val commonTest by getting {
@@ -84,9 +77,7 @@ kotlin {
         }
     }
 }
-compose {
-    kotlinCompilerPlugin = "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:${libs.versions.kotlin.get()}"
-}
+
 android {
     namespace = "com.kevinnzou.sample"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
