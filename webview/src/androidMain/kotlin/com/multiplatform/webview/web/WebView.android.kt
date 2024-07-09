@@ -95,7 +95,6 @@ actual fun ActualWebView(
             override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
                 val v = view?:return
                 val win = windowManager?:return
-                println("v:::$v")
                 // 进入视频全屏
                 (context as Activity).window.setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                     WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
@@ -129,7 +128,6 @@ actual fun ActualWebView(
                 }
             }
             override fun onHideCustomView() {
-                println("onHideCustomView")
                 (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; // 横屏
                 (context as Activity).window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 (context as Activity).window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)

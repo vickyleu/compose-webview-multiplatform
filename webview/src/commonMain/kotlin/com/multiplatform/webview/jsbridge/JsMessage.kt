@@ -1,5 +1,6 @@
 package com.multiplatform.webview.jsbridge
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -14,7 +15,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class JsMessage(
+    @SerialName("callbackId")
     val callbackId: Int,
+    @SerialName("methodName")
     val methodName: String,
-    val params: String,
+    @SerialName("params")
+    val params: String = ""
 )
