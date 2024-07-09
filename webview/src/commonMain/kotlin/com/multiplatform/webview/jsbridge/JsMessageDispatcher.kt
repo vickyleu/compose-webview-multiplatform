@@ -41,8 +41,24 @@ internal class JsMessageDispatcher {
         jsHandlerMap.forEach { (key, value) ->
             webView?.evaluateJavaScript("""
             window.$jsBridgeName.${key} = function (...args) {
+                function isJsonString(str) {
+                     try {
+                         JSON.parse(str);
+                     } catch (e) {
+                         return false;
+                     }
+                     return true;
+                }
                 if (args.length >= ${value.minimalParamCount()} && args.length <= ${value.methodParamCount()}) {
-                    const params = args.length > 1 ? { ${List(value.methodParamCount()){"'key$it': args[$it]"}.joinToString(", ")} } : args[0];
+                    let params;
+                    if (args.length === 1) {
+                        params = isJsonString(args[0]) ? args[0] : JSON.stringify(args[0]);
+                    } else {
+                        params = JSON.stringify(args.reduce((acc, arg, index) => {
+                            acc[`key${'$'}{index}`] = arg;
+                            return acc;
+                        }, {}));
+                    }
                     window.$jsBridgeName.callNative('$key', params);
                 } else {
                     console.error('Invalid number of arguments for ${key}');
@@ -50,21 +66,5 @@ internal class JsMessageDispatcher {
             };
         """.trimIndent())
         }
-//        jsHandlerMap.forEach { (key, value) ->
-//            webView?.evaluateJavaScript("""
-//            window.$jsBridgeName.${key} = function (${List(value.methodParamCount()){"params$it"}.joinToString(",")})" {
-//                    ${
-//                        if(value.methodParamCount()>1){
-//                            "const params = { ${List(value.methodParamCount()){"'key$it':params$it"}.joinToString(", ")} };"
-//                            ""
-//                        }else {
-//                           "window.$jsBridgeName.callNative('${key}',params);"
-//                        }
-//                    }
-//            };
-//        """.trimIndent().apply {
-//            println("evaluateJavaScript:$this")
-//            })
-//        }
     }
 }
