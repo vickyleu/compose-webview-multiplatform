@@ -1,6 +1,7 @@
 package com.multiplatform.webview.setting
 
 import androidx.compose.ui.graphics.Color
+import com.multiplatform.webview.setting.PlatformWebSettings.AndroidWebSettings.LayerType
 
 /**
  * Created By Kevin Zou On 2023/9/20
@@ -230,6 +231,9 @@ sealed class PlatformWebSettings {
          * Whether the vertical scroll indicator is visible. The default value is {@code true}.
          */
         var showVerticalScrollIndicator: Boolean = true,
+
+        var isOpenConsoleLog: Boolean = false
+
     ) : PlatformWebSettings()
 
     /**

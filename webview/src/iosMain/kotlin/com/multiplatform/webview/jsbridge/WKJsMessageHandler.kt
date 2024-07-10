@@ -33,3 +33,16 @@ class WKJsMessageHandler(private val webViewJsBridge: WebViewJsBridge) :
         }
     }
 }
+
+class WKJsConsoleMessageHandler : WKScriptMessageHandlerProtocol,
+    NSObject() {
+    override fun userContentController(
+        userContentController: WKUserContentController,
+        didReceiveScriptMessage: WKScriptMessage,
+    ) {
+        println("收到日志: ${didReceiveScriptMessage.body} ${didReceiveScriptMessage.name}")
+        if (didReceiveScriptMessage.name == "consoleLog") {
+            KLogger.info { "JavaScript log: ${didReceiveScriptMessage.body}" }
+        }
+    }
+}

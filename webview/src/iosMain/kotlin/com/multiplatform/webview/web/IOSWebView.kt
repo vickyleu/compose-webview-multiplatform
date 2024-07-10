@@ -1,7 +1,9 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.jsbridge.WKJsConsoleMessageHandler
 import com.multiplatform.webview.jsbridge.WKJsMessageHandler
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.setting.PlatformWebSettings
 import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatformVersionDouble
 import kotlinx.cinterop.BetaInteropApi
@@ -18,6 +20,8 @@ import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.Foundation.setValue
+import platform.WebKit.WKUserScript
+import platform.WebKit.WKUserScriptInjectionTime
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
 import platform.darwin.NSObjectMeta
@@ -129,10 +133,20 @@ class IOSWebView(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        webView.evaluateJavaScript(script) { result, error ->
-            if (callback == null) return@evaluateJavaScript
+        val wrapScript = """
+                (function() {
+                    $script
+                })();
+            """.trimIndent()
+        /*wrapScript.apply {
+            println("evaluateJavaScript postWebviewDelegateMethod:${this}")
+        }*/
+        wkWebView.evaluateJavaScript(wrapScript) Call@{ result, error ->
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error" }
+            }
+            if (callback == null) return@Call
+            if (error != null) {
                 callback.invoke(error.localizedDescription())
             } else {
                 KLogger.info { "evaluateJavaScript result: $result" }
@@ -178,6 +192,37 @@ class IOSWebView(
         val offset = webView.scrollView.contentOffset
         offset.useContents {
             return Pair(x.toInt(), y.toInt())
+        }
+    }
+
+    fun setupSettings(settings: PlatformWebSettings.IOSWebSettings) {
+        settings.isOpenConsoleLog = true
+
+        /**
+         * // inject JS to capture console.log output and send to iOS
+         * let source = "function captureLog(msg) { window.webkit.messageHandlers.logHandler.postMessage(msg); } window.console.log = captureLog;"
+         * let script = WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+         * webView.configuration.userContentController.addUserScript(script)
+         * // register the bridge script that listens for the output
+         * webView.configuration.userContentController.add(self, name: "logHandler")
+         */
+        val jsMessageHandler = WKJsConsoleMessageHandler()
+        wkWebView.configuration.userContentController.apply {
+            addScriptMessageHandler(jsMessageHandler,"consoleLog")
+            println("注入consoleLog处理器")
+            val logScript = WKUserScript(
+                """
+                (function() {
+                    function captureLog(...args) { 
+                        window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
+                    } 
+                    window.console.log = captureLog;
+                })();
+                """.trimIndent(),
+                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
+                true)
+            addUserScript(logScript)
+            println("替换console.log方法实现,映射方法到consoleLog")
         }
     }
 

@@ -126,9 +126,13 @@ fun IOSWebView(
                         showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
                         showsVerticalScrollIndicator = it.showVerticalScrollIndicator
                     }
+
                 }
             }.also {
-                val iosWebView = IOSWebView(it, scope, webViewJsBridge)
+                val iosWebView = IOSWebView(it, scope,webViewJsBridge)
+                state.webSettings.iOSWebSettings.let {
+                    iosWebView.setupSettings(it)
+                }
                 state.webView = iosWebView
                 webViewJsBridge?.webView = iosWebView
             }
