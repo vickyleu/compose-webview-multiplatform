@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.interop.UIKitView
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.toUIColor
@@ -72,10 +74,27 @@ fun IOSWebView(
         }
     val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
     val scope = rememberCoroutineScope()
+//    val scale = UIScreen.mainScreen.scale.toFloat()
+//    val onTapTransformer = remember(key1 = state) { mutableStateOf(Offset.Zero) }
+//    LaunchedEffect(key1 =state){
+//        snapshotFlow { onTapTransformer.value }
+//            .distinctUntilChanged()
+//            .mapNotNull {
+//                if(it.isValid())it else null
+//            }
+//            .distinctUntilChanged()
+//            .collect{
+//                println("onTapTransformer.value::${it}scale::${scale}")
+//                (state.webView as? IOSWebView)?.webView?.evaluateJavaScript(performClickAction(it,scale)) { a,b->
+//                    println("a::#${a}b::${b}")
+//                }
+//            }
+//    }
 
     UIKitView(
         factory = {
-            val config =  WKWebViewConfiguration().apply {
+            val config =
+                WKWebViewConfiguration().apply {
                     allowsInlineMediaPlayback = true
                     defaultWebpagePreferences.allowsContentJavaScript =
                         state.webSettings.isJavaScriptEnabled
@@ -101,9 +120,8 @@ fun IOSWebView(
                 this.addProgressObservers(
                     observer = observer,
                 )
-                this.UIDelegate = navigationDelegate
                 this.navigationDelegate = navigationDelegate
-
+                this.userInteractionEnabled = true
                 state.webSettings.let {
                     val backgroundColor =
                         (it.iOSWebSettings.backgroundColor ?: it.backgroundColor).toUIColor()
@@ -121,12 +139,12 @@ fun IOSWebView(
                 }
                 state.webSettings.iOSWebSettings.let {
                     with(scrollView) {
+                        userInteractionEnabled = true
                         bounces = it.bounces
                         scrollEnabled = it.scrollEnabled
                         showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
                         showsVerticalScrollIndicator = it.showVerticalScrollIndicator
                     }
-
                 }
             }.also {
                 val iosWebView = IOSWebView(it, scope,webViewJsBridge)
@@ -137,10 +155,14 @@ fun IOSWebView(
                 webViewJsBridge?.webView = iosWebView
             }
         },
-        modifier = modifier,
-        update ={
-
-        },
+        background = Color.Transparent,
+        modifier = modifier
+           /* .then(Modifier.pointerInput(Unit) {
+            detectTapGestures(onPress = {
+                onTapTransformer.value = it
+            })
+        })*/
+        ,
         onRelease = {
             state.webView = null
             it.removeProgressObservers(
@@ -150,4 +172,20 @@ fun IOSWebView(
             onDispose(it)
         },
     )
+}
+
+private fun performClickAction(offset: Offset, scale: Float): String {
+    return """
+       (function() {
+                    var event = new MouseEvent('click', {
+                        clientX: ${offset.x/scale},
+                        clientY: ${offset.y/scale},
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    var element = document.elementFromPoint(${offset.x/scale}, ${offset.y/scale});
+                    element.dispatchEvent(event);
+                })();
+   """.trimIndent()
 }

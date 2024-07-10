@@ -142,7 +142,7 @@ class IOSWebView(
         /*wrapScript.apply {
             println("evaluateJavaScript postWebviewDelegateMethod:${this}")
         }*/
-        wkWebView.evaluateJavaScript(wrapScript) Call@{ result, error ->
+        webView.evaluateJavaScript(wrapScript) Call@{ result, error ->
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error" }
             }
@@ -208,12 +208,15 @@ class IOSWebView(
          * webView.configuration.userContentController.add(self, name: "logHandler")
          */
         val jsMessageHandler = WKJsConsoleMessageHandler()
-        wkWebView.configuration.userContentController.apply {
+        webView.configuration.userContentController.apply {
             addScriptMessageHandler(jsMessageHandler,"consoleLog")
             println("注入consoleLog处理器")
             val logScript = WKUserScript(
                 """
                 (function() {
+                    document.addEventListener('click', function(event) {
+                         window.webkit.messageHandlers.consoleLog.postMessage('Element clicked: ' + event.target.tagName);
+                    });
                     function captureLog(...args) { 
                         window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
                     } 

@@ -97,6 +97,12 @@ kotlin {
     }
 }
 
+compose.resources{
+    publicResClass = false
+    packageOfResClass="compose_webview_multiplatform.webview.generated.resources"
+    generateResClass = always
+}
+
 android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     namespace = "com.multiplatform.webview"

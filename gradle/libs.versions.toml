@@ -28,7 +28,6 @@ compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = 
 coroutines-bom = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-bom", version.ref = "coroutines-bom" }
 kotlin-bom = { group = "org.jetbrains.kotlin", name = "kotlin-bom", version.ref = "kotlin" }
 
-
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "kotlinx-atomicfu" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }

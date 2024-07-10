@@ -1,10 +1,15 @@
 package com.multiplatform.webview.web
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Build
+import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -19,7 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.getSystemService
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
@@ -153,12 +160,14 @@ fun AccompanistWebView(
     BackHandler(captureBackPresses && navigator.canGoBack) {
         webView?.goBack()
     }
-
+    val context = LocalContext.current
+    val windowManager = remember { context.getSystemService<WindowManager>() }
     // Set the state of the client and chrome client
     // This is done internally to ensure they always are the same instance as the
     // parent Web composable
     client.state = state
     client.navigator = navigator
+    chromeClient.setWindowManager(windowManager, context)
     chromeClient.state = state
 
     AndroidView(
@@ -200,7 +209,7 @@ fun AccompanistWebView(
                         allowFileAccess = it.allowFileAccess
                         textZoom = it.textZoom
                         useWideViewPort = it.useWideViewPort
-                        if(it.useWideViewPort){
+                        if (it.useWideViewPort) {
                             setInitialScale(1)
                             loadWithOverviewMode = true
                             this.layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
@@ -234,7 +243,6 @@ fun AccompanistWebView(
                             WebSettingsCompat.DARK_STRATEGY_WEB_THEME_DARKENING_ONLY,
                         )
                     }
-
                 }
             }.also {
                 val androidWebView = AndroidWebView(it, scope, webViewJsBridge)
@@ -285,6 +293,7 @@ open class AccompanistWebViewClient : WebViewClient() {
             "var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=10.0, minimum-scale=0.1,user-scalable=yes');document.getElementsByTagName('head')[0].appendChild(meta);"
         navigator.evaluateJavaScript(script)
     }
+
 
     override fun onPageFinished(
         view: WebView,
@@ -397,6 +406,15 @@ open class AccompanistWebViewClient : WebViewClient() {
  * class that can be overriden if further custom behaviour is required.
  */
 open class AccompanistWebChromeClient : WebChromeClient() {
+    private var windowManager: WindowManager? = null
+    private var context: Context? = null
+
+    fun setWindowManager(windowManager: WindowManager?,context: Context){
+        this.windowManager = windowManager
+        this.context = context
+
+    }
+
     open lateinit var state: WebViewState
         internal set
     private var lastLoadedUrl = ""
@@ -434,5 +452,62 @@ open class AccompanistWebChromeClient : WebChromeClient() {
                 LoadingState.Loading(newProgress / 100.0f)
             }
         lastLoadedUrl = view.url ?: ""
+    }
+
+    private var fullScreenView: View? = null
+    override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+        val v = view ?: return
+        val ctx = context as? Activity ?: return
+        val win = windowManager ?: return
+        // 进入视频全屏
+        ctx.window.setFlags(
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+        )
+        ctx.requestedOrientation =
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE; // 横屏
+        ctx.window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        // 此处的 view 就是全屏的视频播放界面，需要把它添加到我们的界面上
+        win.addView(
+            v,
+            WindowManager.LayoutParams(WindowManager.LayoutParams.TYPE_APPLICATION)
+        )
+        // 去除状态栏和导航按钮
+        fullScreen(v)
+//                callback?.onCustomViewHidden()
+        fullScreenView = v
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
+    private fun fullScreen(view: View) {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT) {
+            view.systemUiVisibility = (View.SYSTEM_UI_FLAG_LOW_PROFILE
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+        } else {
+            view.systemUiVisibility = (View.SYSTEM_UI_FLAG_LOW_PROFILE
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+        }
+    }
+
+    override fun onHideCustomView() {
+        val f = fullScreenView
+        fullScreenView = null
+        val ctx = context as? Activity
+        if(ctx is Activity){
+            ctx.requestedOrientation =
+                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; // 横屏
+            ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
+        }
+        // 退出全屏播放，我们要把之前添加到界面上的视频播放界面移除
+        windowManager?.removeViewImmediate(f)
+
     }
 }
