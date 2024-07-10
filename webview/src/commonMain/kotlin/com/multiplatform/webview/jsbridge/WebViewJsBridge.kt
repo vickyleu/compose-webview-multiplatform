@@ -22,7 +22,7 @@ open class WebViewJsBridge(val navigator: WebViewNavigator? = null, val jsBridge
         jsMessageDispatcher.registerJSHandler(handler)
     }
 
-    fun registerDelegateMethod(){
+    internal fun registerDelegateMethod(){
         jsMessageDispatcher.postWebviewDelegateMethod(webView,jsBridgeName)
     }
 
