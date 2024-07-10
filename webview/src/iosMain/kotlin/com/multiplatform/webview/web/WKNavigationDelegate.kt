@@ -63,6 +63,16 @@ class WKNavigationDelegate(
             decidePolicyForNavigationAction.request.URL?.absoluteString() ?: return Unit.apply {
                 decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
             }
+        if(state.lastLoadedUrl == url) {
+            // 判断url有没有和上次加载的url一样，一样的话不做任何处理,因为第一次进入就会调用
+            // 这里是为了和Android保持一致，Android的逻辑是不会在刚进入的时候调用navigatorTo
+            // If the url is the same as the last loaded url, do nothing and allow navigation,
+            // because the navigatorTo will be called when first entered
+            // This is to keep consistent with Android, Android's logic is not to call
+            // navigatorTo when it first enters
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            return
+        }
         val naviResult = navigator.navigatorTo(url)
         if (naviResult) {
             decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
