@@ -115,13 +115,12 @@ fun IOSWebView(
                 state.viewState?.let {
                     this.interactionState = it
                 }
-                allowsBackForwardNavigationGestures = captureBackPresses
+//                allowsBackForwardNavigationGestures = captureBackPresses
                 customUserAgent = state.webSettings.customUserAgentString
                 this.addProgressObservers(
                     observer = observer,
                 )
                 this.navigationDelegate = navigationDelegate
-                this.userInteractionEnabled = true
                 state.webSettings.let {
                     val backgroundColor =
                         (it.iOSWebSettings.backgroundColor ?: it.backgroundColor).toUIColor()
@@ -139,7 +138,6 @@ fun IOSWebView(
                 }
                 state.webSettings.iOSWebSettings.let {
                     with(scrollView) {
-                        userInteractionEnabled = true
                         bounces = it.bounces
                         scrollEnabled = it.scrollEnabled
                         showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
@@ -155,7 +153,7 @@ fun IOSWebView(
                 webViewJsBridge?.webView = iosWebView
             }
         },
-        background = Color.Transparent,
+        background = Color.White,
         modifier = modifier
            /* .then(Modifier.pointerInput(Unit) {
             detectTapGestures(onPress = {
