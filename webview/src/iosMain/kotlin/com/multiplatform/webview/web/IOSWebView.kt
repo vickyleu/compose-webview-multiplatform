@@ -1,5 +1,6 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.jsbridge.WKJsConsoleMessageHandler
 import com.multiplatform.webview.jsbridge.WKJsMessageHandler
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.setting.PlatformWebSettings
@@ -19,6 +20,8 @@ import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.Foundation.setValue
+import platform.WebKit.WKUserScript
+import platform.WebKit.WKUserScriptInjectionTime
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
 import platform.darwin.NSObjectMeta
