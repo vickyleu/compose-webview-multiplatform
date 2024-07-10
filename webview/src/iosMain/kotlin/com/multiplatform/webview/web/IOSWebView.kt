@@ -202,6 +202,10 @@ class IOSWebView(
             val logScript = WKUserScript(
                 """
                 (function() {
+                    var meta = document.createElement('meta'); meta.setAttribute('name', 'viewport'); 
+                    meta.setAttribute('content', 'width=device-width'); 
+                    document.getElementsByTagName('head')[0].appendChild(meta);
+                
 //                    document.addEventListener('click', function(event) {
 //                         window.webkit.messageHandlers.consoleLog.postMessage('Element clicked: ' + event.target.tagName);
 //                    });
