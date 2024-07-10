@@ -59,6 +59,7 @@ class IOSWebView(
         wkWebView.loadRequest(
             request = request,
         )
+        KLogger.d { "wkWebView.loadRequest: $url" }
     }
 
     override fun loadHtml(
@@ -125,8 +126,8 @@ class IOSWebView(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        wkWebView.evaluateJavaScript(script) { result, error ->
-            if (callback == null) return@evaluateJavaScript
+        wkWebView.evaluateJavaScript(script) Call@{ result, error ->
+            if (callback == null) return@Call
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error" }
                 callback.invoke(error.localizedDescription())

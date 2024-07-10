@@ -110,6 +110,9 @@ fun IOSWebView(
             }
         },
         modifier = modifier,
+        update ={
+
+        },
         onRelease = {
             state.webView = null
             it.removeProgressObservers(
