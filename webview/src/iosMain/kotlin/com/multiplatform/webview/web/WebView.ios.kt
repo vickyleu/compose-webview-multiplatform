@@ -78,6 +78,7 @@ fun IOSWebView(
                 frame = CGRectZero.readValue(),
                 configuration = config,
             ).apply {
+                userInteractionEnabled=true
                 onCreated()
                 allowsBackForwardNavigationGestures = captureBackPresses
                 customUserAgent = state.webSettings.customUserAgentString
@@ -117,6 +118,7 @@ fun IOSWebView(
         update ={
 
         },
+        interactive = true,
         onRelease = {
             state.webView = null
             it.removeProgressObservers(

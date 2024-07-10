@@ -135,6 +135,7 @@ class IOSWebView(
                     $script
                 })();
             """.trimIndent()
+//        val wrapScript = script
         /*wrapScript.apply {
             println("evaluateJavaScript postWebviewDelegateMethod:${this}")
         }*/
