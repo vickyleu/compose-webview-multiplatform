@@ -1,4 +1,5 @@
-@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE",
+@file:Suppress(
+    "PARAMETER_NAME_CHANGED_ON_OVERRIDE",
     "DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES"
 )
 
@@ -10,18 +11,19 @@ import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatformVersionDouble
 import com.multiplatform.webview.util.notZero
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCSignatureOverride
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.HTTPMethod
-import kotlinx.cinterop.ObjCSignatureOverride
 import platform.Foundation.NSError
 import platform.Foundation.allHTTPHeaderFields
-import platform.WebKit.WKFrameInfo
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
 import platform.WebKit.WKNavigationDelegateProtocol
 import platform.WebKit.WKUIDelegateProtocol
 import platform.WebKit.WKWebView
+import platform.WebKit.WKWebViewConfiguration
+import platform.WebKit.WKWindowFeatures
 import platform.darwin.NSObject
 
 /**
@@ -35,8 +37,31 @@ import platform.darwin.NSObject
 class WKNavigationDelegate(
     private val state: WebViewState,
     private val navigator: WebViewNavigator,
-) : NSObject(), WKNavigationDelegateProtocol {
+) : NSObject(), WKNavigationDelegateProtocol, WKUIDelegateProtocol {
     private var isRedirect = false
+
+
+    override fun webView(
+        webView: WKWebView,
+        createWebViewWithConfiguration: WKWebViewConfiguration,
+        forNavigationAction: WKNavigationAction,
+        windowFeatures: WKWindowFeatures
+    ): WKWebView? {
+        /**
+         * WKFrameInfo *frameInfo = navigationAction.targetFrame;
+         * if (![frameInfo isMainFrame]) {
+         * [webView loadRequest:navigationAction.request];
+         * }
+         */
+        KLogger.info {
+            "createWebViewWithConfiguration"
+        }
+        val frameInfo = forNavigationAction.targetFrame
+        if(frameInfo?.isMainFrame()==true){
+            webView.loadRequest(forNavigationAction.request)
+        }
+        return null
+    }
 
     /**
      * Called when the web view begins to receive web content.
@@ -65,9 +90,19 @@ class WKNavigationDelegate(
         val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
 
         @Suppress("ktlint:standard:max-line-length")
-        val script =
-            "var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=10.0, minimum-scale=0.1,user-scalable=$supportZoom');document.getElementsByTagName('head')[0].appendChild(meta);"
-        webView.evaluateJavaScript(script) { _, _ -> }
+        val script = """
+            (function() {
+                    var meta = document.createElement('meta'); 
+                     meta.setAttribute('name', 'viewport'); 
+                     meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${state.webSettings.zoomLevel}, user-scalable=$supportZoom'); 
+                     document.getElementsByTagName('head')[0].appendChild(meta);
+            })();
+        """.trimIndent().apply {
+            println("didCommitNavigation:$this")
+        }
+        webView.evaluateJavaScript(script) { _, err ->
+            println("didCommitNavigation err:::${err}")
+        }
         KLogger.info { "didCommitNavigation" }
     }
 

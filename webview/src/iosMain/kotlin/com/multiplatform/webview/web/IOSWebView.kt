@@ -3,7 +3,7 @@ package com.multiplatform.webview.web
 import com.multiplatform.webview.jsbridge.WKJsConsoleMessageHandler
 import com.multiplatform.webview.jsbridge.WKJsMessageHandler
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
-import com.multiplatform.webview.setting.PlatformWebSettings
+import com.multiplatform.webview.setting.WebSettings
 import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatformVersionDouble
 import kotlinx.cinterop.BetaInteropApi
@@ -193,19 +193,26 @@ class IOSWebView(
         }
     }
 
-    fun setupSettings(settings: PlatformWebSettings.IOSWebSettings) {
-        settings.isOpenConsoleLog = true
+    fun setupSettings(settings: WebSettings) {
+        settings.iOSWebSettings.isOpenConsoleLog = true
         val jsMessageHandler = WKJsConsoleMessageHandler()
+
+        
         webView.configuration.userContentController.apply {
             addScriptMessageHandler(jsMessageHandler,"consoleLog")
             println("注入consoleLog处理器")
+
             val logScript = WKUserScript(
                 """
                 (function() {
-                    var meta = document.createElement('meta'); meta.setAttribute('name', 'viewport'); 
-                    meta.setAttribute('content', 'width=device-width'); 
-                    document.getElementsByTagName('head')[0].appendChild(meta);
-                
+                    var lastTouchEnd = 0;
+                    document.documentElement.addEventListener('touchend', function(event) {
+                        var now = (new Date()).getTime();
+                        if (now - lastTouchEnd <= 300) {
+                            event.preventDefault();
+                        }
+                        lastTouchEnd = now;
+                    }, false);
 //                    document.addEventListener('click', function(event) {
 //                         window.webkit.messageHandlers.consoleLog.postMessage('Element clicked: ' + event.target.tagName);
 //                    });
@@ -219,6 +226,26 @@ class IOSWebView(
                 true)
             addUserScript(logScript)
             println("替换console.log方法实现,映射方法到consoleLog")
+
+            val supportZoom = if (settings.supportZoom) "yes" else "no"
+            @Suppress("ktlint:standard:max-line-length")
+            val script = """
+                    (function() {
+                            var meta = document.createElement('meta');
+                             meta.setAttribute('name', 'viewport');
+                             meta.setAttribute('content', 'width=device-width, initial-scale=${settings.zoomLevel}, maximum-scale=${settings.zoomLevel}, user-scalable=$supportZoom');
+                             document.getElementsByTagName('head')[0].appendChild(meta);
+                    })();
+            """.trimIndent()
+            .apply {
+                    println("didCommitNavigation:$this")
+            }
+            addUserScript(WKUserScript(
+                script,
+                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
+                true
+            ))
+
         }
     }
 
