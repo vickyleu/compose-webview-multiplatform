@@ -141,7 +141,7 @@ class IOSWebView(
 //        val wrapScript = script
         webView.evaluateJavaScript(wrapScript) Call@{ result, error ->
             if (error != null) {
-                KLogger.e { "evaluateJavaScript error: $error" }
+                KLogger.e { "evaluateJavaScript error: $error  script:  $script" }
             }
             if (callback == null) return@Call
             if (error != null) {
@@ -205,6 +205,13 @@ class IOSWebView(
             val logScript = WKUserScript(
                 """
                 (function() {
+                    window.onload = function() {
+                        setInterval(function() {
+                            console.log('Interval log');
+                            console.log('window.android:', window.android);
+                        }, 3000);
+                    };
+                    
                     var lastTouchEnd = 0;
                     document.documentElement.addEventListener('touchend', function(event) {
                         var now = (new Date()).getTime();
@@ -213,9 +220,7 @@ class IOSWebView(
                         }
                         lastTouchEnd = now;
                     }, false);
-//                    document.addEventListener('click', function(event) {
-//                         window.webkit.messageHandlers.consoleLog.postMessage('Element clicked: ' + event.target.tagName);
-//                    });
+                    
                     function captureLog(...args) { 
                         window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
                     } 

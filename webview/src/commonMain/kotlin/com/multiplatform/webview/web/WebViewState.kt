@@ -44,11 +44,17 @@ class WebViewState(webContent: WebContent) {
     var loadingState: LoadingState by mutableStateOf(LoadingState.Initializing)
         internal set
 
+
     /**
      * Whether the webview is currently loading data in its main frame
      */
     val isLoading: Boolean
         get() = loadingState !is LoadingState.Finished
+    var fullscreenState by mutableStateOf(false)
+        internal set
+
+    val isFullScreen: Boolean
+        get() = fullscreenState
 
     /**
      * The title received from the loaded content of the current page
@@ -110,6 +116,7 @@ class WebViewState(webContent: WebContent) {
 fun rememberWebViewState(
     url: String,
     additionalHttpHeaders: Map<String, String> = emptyMap(),
+    callback: (WebViewState) -> Unit = {}
 ): WebViewState =
 // Rather than using .apply {} here we will recreate the state, this prevents
     // a recomposition loop when the webview updates the url itself.
@@ -126,6 +133,8 @@ fun rememberWebViewState(
                 url = url,
                 additionalHttpHeaders = additionalHttpHeaders,
             )
+
+        callback(this)
     }
 
 /**
