@@ -3,7 +3,6 @@ package com.multiplatform.webview.web
 import com.multiplatform.webview.jsbridge.WKJsConsoleMessageHandler
 import com.multiplatform.webview.jsbridge.WKJsMessageHandler
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
-import com.multiplatform.webview.setting.WebSettings
 import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatformVersionDouble
 import kotlinx.cinterop.BetaInteropApi
@@ -75,6 +74,7 @@ class IOSWebView(
         mimeType: String?,
         encoding: String?,
         historyUrl: String?,
+        additionalHttpHeaders: Map<String, String>,
     ) {
         if (html == null) {
             KLogger.e {
@@ -88,7 +88,10 @@ class IOSWebView(
         )
     }
 
-    override suspend fun loadHtmlFile(fileName: String) {
+    override suspend fun loadHtmlFile(
+        fileName: String,
+        additionalHttpHeaders: Map<String, String>
+    ) {
         val res = NSBundle.mainBundle.resourcePath + "/compose-resources/assets/" + fileName
         val url = NSURL.fileURLWithPath(res)
         webView.loadFileURL(url, url)
@@ -97,7 +100,7 @@ class IOSWebView(
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     override fun postUrl(
         url: String,
-        postData: ByteArray,
+        postData: ByteArray, additionalHttpHeaders: Map<String, String>
     ) {
         val request =
             NSMutableURLRequest(
@@ -133,13 +136,7 @@ class IOSWebView(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        val wrapScript = """
-                (function() {
-                    $script
-                })();
-            """.trimIndent()
-//        val wrapScript = script
-        webView.evaluateJavaScript(wrapScript) Call@{ result, error ->
+        webView.evaluateJavaScript(script) Call@{ result, error ->
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error  script:  $script" }
             }
@@ -170,9 +167,33 @@ class IOSWebView(
 
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
         KLogger.info { "injectBridge" }
+        val jsConsoleHandler = WKJsConsoleMessageHandler()
         val jsMessageHandler = WKJsMessageHandler(webViewJsBridge)
         webView.configuration.userContentController.apply {
             addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
+            addScriptMessageHandler(jsConsoleHandler, "consoleLog")
+            println("注入consoleLog处理器")
+            val logScript = WKUserScript(
+                """(function() {
+                    var lastTouchEnd = 0;
+                    document.documentElement.addEventListener('touchend', function(event) {
+                        var now = (new Date()).getTime();
+                        if (now - lastTouchEnd <= 300) {
+                            event.preventDefault();
+                        }
+                        lastTouchEnd = now;
+                    }, false);
+                    
+                    function captureLog(...args) { 
+                        window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
+                    };
+                    window.console.log = captureLog;
+                })();""".trimIndent(),
+                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
+                true
+            )
+            addUserScript(logScript)
+            println("替换console.log方法实现,映射方法到consoleLog")
         }
     }
 
@@ -190,67 +211,6 @@ class IOSWebView(
         val offset = webView.scrollView.contentOffset
         offset.useContents {
             return Pair(x.toInt(), y.toInt())
-        }
-    }
-
-    fun setupSettings(settings: WebSettings) {
-        settings.iOSWebSettings.isOpenConsoleLog = true
-        val jsMessageHandler = WKJsConsoleMessageHandler()
-
-        
-        webView.configuration.userContentController.apply {
-            addScriptMessageHandler(jsMessageHandler,"consoleLog")
-            println("注入consoleLog处理器")
-
-            val logScript = WKUserScript(
-                """
-                (function() {
-                    window.onload = function() {
-                        setInterval(function() {
-                            console.log('Interval log');
-                            console.log('window.android:', window.android);
-                        }, 3000);
-                    };
-                    
-                    var lastTouchEnd = 0;
-                    document.documentElement.addEventListener('touchend', function(event) {
-                        var now = (new Date()).getTime();
-                        if (now - lastTouchEnd <= 300) {
-                            event.preventDefault();
-                        }
-                        lastTouchEnd = now;
-                    }, false);
-                    
-                    function captureLog(...args) { 
-                        window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
-                    } 
-                    window.console.log = captureLog;
-                })();
-                """.trimIndent(),
-                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
-                true)
-            addUserScript(logScript)
-            println("替换console.log方法实现,映射方法到consoleLog")
-
-            val supportZoom = if (settings.supportZoom) "yes" else "no"
-            @Suppress("ktlint:standard:max-line-length")
-            val script = """
-                    (function() {
-                            var meta = document.createElement('meta');
-                             meta.setAttribute('name', 'viewport');
-                             meta.setAttribute('content', 'width=device-width, initial-scale=${settings.zoomLevel}, maximum-scale=${settings.zoomLevel}, user-scalable=$supportZoom');
-                             document.getElementsByTagName('head')[0].appendChild(meta);
-                    })();
-            """.trimIndent()
-            .apply {
-                    println("didCommitNavigation:$this")
-            }
-            addUserScript(WKUserScript(
-                script,
-                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
-                true
-            ))
-
         }
     }
 

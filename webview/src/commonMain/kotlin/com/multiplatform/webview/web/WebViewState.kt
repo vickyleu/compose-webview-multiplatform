@@ -213,14 +213,23 @@ fun rememberWebViewStateWithHTMLData(
     encoding: String = "utf-8",
     mimeType: String? = null,
     historyUrl: String? = null,
+    additionalHttpHeaders: Map<String, String> = emptyMap(),
+    callback: (WebViewState) -> Unit = {}
 ): WebViewState =
     remember {
-        WebViewState(WebContent.Data(data, baseUrl, encoding, mimeType, historyUrl))
+        WebViewState(
+            WebContent.Data(
+                data, baseUrl, encoding, mimeType, historyUrl,
+                additionalHttpHeaders = additionalHttpHeaders,
+            )
+        )
     }.apply {
         this.content =
             WebContent.Data(
                 data, baseUrl, encoding, mimeType, historyUrl,
+                additionalHttpHeaders = additionalHttpHeaders,
             )
+        callback(this)
     }
 
 /**

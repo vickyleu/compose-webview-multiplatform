@@ -61,6 +61,7 @@ interface IWebView {
         mimeType: String? = "text/html",
         encoding: String? = "utf-8",
         historyUrl: String? = null,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
     )
 
     suspend fun loadContent(content: WebContent) {
@@ -78,17 +79,20 @@ interface IWebView {
                     content.mimeType,
                     content.encoding,
                     content.historyUrl,
+                    content.additionalHttpHeaders,
                 )
 
             is WebContent.File ->
                 loadHtmlFile(
                     content.fileName,
+                    content.additionalHttpHeaders,
                 )
 
             is WebContent.Post ->
                 postUrl(
                     content.url,
                     content.postData,
+                    content.additionalHttpHeaders,
                 )
 
             is WebContent.NavigatorOnly -> {}
@@ -117,7 +121,9 @@ interface IWebView {
      *
      * @param fileName The name of the HTML file to load.
      */
-    suspend fun loadHtmlFile(fileName: String)
+    suspend fun loadHtmlFile(fileName: String,
+                             additionalHttpHeaders: Map<String, String> = emptyMap()
+    )
 
     /**
      * Posts the given data to the given URL.
@@ -128,6 +134,7 @@ interface IWebView {
     fun postUrl(
         url: String,
         postData: ByteArray,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
     )
 
     /**

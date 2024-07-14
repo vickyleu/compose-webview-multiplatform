@@ -1,25 +1,27 @@
 package com.multiplatform.webview.web
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.platform.LocalDensity
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.toUIColor
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
+import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSDate
 import platform.Foundation.setValue
-import platform.UIKit.UIDevice
+import platform.UIKit.UIEdgeInsetsZero
 import platform.UIKit.UIResponder
 import platform.UIKit.UIScreen
+import platform.UIKit.UIScrollViewContentInsetAdjustmentBehavior
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.WebKit.WKWebView
@@ -61,6 +63,14 @@ actual data class WebViewFactoryParam(val config: WKWebViewConfiguration)
 actual fun defaultWebViewFactory(param: WebViewFactoryParam) =
     WKWebView(frame = CGRectZero.readValue(), configuration = param.config)
 
+fun Size.isSmallerThan(other: Size): Boolean {
+    return this.width * this.height < other.width * other.height
+}
+
+fun Size.isLargerThan(other: Size): Boolean {
+    return this.width * this.height > other.width * other.height
+}
+
 /**
  * iOS WebView implementation.
  */
@@ -82,140 +92,141 @@ fun IOSWebView(
             navigator = navigator,
         )
     }
-    val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
     val scope = rememberCoroutineScope()
-
+    val navigationDelegate = remember { WKNavigationDelegate(state, navigator,scope) }
     val scale = UIScreen.mainScreen.scale.toFloat()
     with(LocalDensity.current) {
-        UIKitView(
-            factory = {
-                val dataStore = WKWebsiteDataStore.defaultDataStore()
-                val date = NSDate(timeIntervalSinceReferenceDate = 0.0)
-                dataStore.removeDataOfTypes(
-                    WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince = date
-                ) {
-                    println("Cache cleared")
-                }
+        BoxWithConstraints(
+            modifier = modifier.then(Modifier),
+        ) {
+            UIKitView(
+                factory = {
+                    val dataStore = WKWebsiteDataStore.defaultDataStore()
+                    val date = NSDate(timeIntervalSinceReferenceDate = 0.0)
+                    dataStore.removeDataOfTypes(
+                        WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince = date
+                    ) {
+                        println("Cache cleared")
+                    }
 
-                val config = WKWebViewConfiguration().apply {
-                    allowsInlineMediaPlayback = true
-                    defaultWebpagePreferences.allowsContentJavaScript =
-                        state.webSettings.isJavaScriptEnabled
-                    preferences.apply {
-                        setValue(
-                            state.webSettings.allowFileAccessFromFileURLs,
-                            forKey = "allowFileAccessFromFileURLs",
+                    val config = WKWebViewConfiguration().apply {
+                        allowsInlineMediaPlayback = true
+                        defaultWebpagePreferences.allowsContentJavaScript =
+                            state.webSettings.isJavaScriptEnabled.apply {
+                                println("defaultWebpagePreferences.allowsContentJavaScript:${this}")
+                            }
+                        preferences.apply {
+                            setValue(
+                                state.webSettings.allowFileAccessFromFileURLs,
+                                forKey = "allowFileAccessFromFileURLs",
+                            )
+                            javaScriptEnabled = state.webSettings.isJavaScriptEnabled.apply {
+                                println("preferences.javaScriptEnabled:${this}")
+                            }
+                        }
+                        this.setValue(
+                            state.webSettings.allowUniversalAccessFromFileURLs,
+                            forKey = "allowUniversalAccessFromFileURLs",
                         )
-                        javaScriptEnabled = state.webSettings.isJavaScriptEnabled
                     }
-                    this.setValue(
-                        state.webSettings.allowUniversalAccessFromFileURLs,
-                        forKey = "allowUniversalAccessFromFileURLs",
-                    )
-                }
-                factory(WebViewFactoryParam(config)).apply {
-                    onCreated(this)
-                    state.viewState?.let {
-                        this.interactionState = it
-                    }
-                    allowsBackForwardNavigationGestures = captureBackPresses
-                    customUserAgent = state.webSettings.customUserAgentString
-                    this.addProgressObservers(
-                        observer = observer,
-                    )
-                    this.inspectable = true
+                    factory(WebViewFactoryParam(config)).apply {
+                        this.setInspectable(true)
+                        setFrame(CGRectMake(0.0, 0.0,maxWidth.value.toDouble(),120.0))
+                        onCreated(this)
+                        state.viewState?.let {
+                            this.interactionState = it
+                        }
+                        allowsBackForwardNavigationGestures = captureBackPresses
+                        customUserAgent = state.webSettings.customUserAgentString
+                        this.addProgressObservers(
+                            observer = observer,
+                        )
 //                        this.UIDelegate = navigationDelegate
-                    this.navigationDelegate = navigationDelegate
-                    state.webSettings.let {
-                        val backgroundColor =
-                            (it.iOSWebSettings.backgroundColor ?: it.backgroundColor).toUIColor()
-                        val scrollViewColor = (it.iOSWebSettings.underPageBackgroundColor
-                            ?: it.backgroundColor).toUIColor()
-                        setOpaque(it.iOSWebSettings.opaque)
-                        if (!it.iOSWebSettings.opaque) {
-                            setBackgroundColor(backgroundColor)
-                            scrollView.setBackgroundColor(scrollViewColor)
+                        this.navigationDelegate = navigationDelegate
+                        state.webSettings.let {
+                            val backgroundColor =
+                                (it.iOSWebSettings.backgroundColor ?: it.backgroundColor).toUIColor()
+                            val scrollViewColor = (it.iOSWebSettings.underPageBackgroundColor
+                                ?: it.backgroundColor).toUIColor()
+                            setOpaque(it.iOSWebSettings.opaque)
+                            if (!it.iOSWebSettings.opaque) {
+                                setBackgroundColor(backgroundColor)
+                                scrollView.setBackgroundColor(scrollViewColor)
+                            }
+                            scrollView.pinchGestureRecognizer?.enabled = it.supportZoom
                         }
-                        scrollView.pinchGestureRecognizer?.enabled = it.supportZoom
-                    }
-                    state.webSettings.iOSWebSettings.let {
-                        with(scrollView) {
-                            bounces = it.bounces
-                            scrollEnabled = it.scrollEnabled
-                            showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
-                            showsVerticalScrollIndicator = it.showVerticalScrollIndicator
+                        state.webSettings.iOSWebSettings.let {
+                            with(scrollView) {
+                                bounces = it.bounces
+                                scrollEnabled = it.scrollEnabled
+                                showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
+                                showsVerticalScrollIndicator = it.showVerticalScrollIndicator
+                                contentInset = UIEdgeInsetsZero.readValue()
+//                                scrollIndicatorInsets = UIEdgeInsetsZero.readValue()
+                                setContentInsetAdjustmentBehavior(UIScrollViewContentInsetAdjustmentBehavior.
+                                UIScrollViewContentInsetAdjustmentNever)
+//                                adjustedContentInset = UIEdgeInsetsZero.readValue()
+                            }
                         }
+                    }.also {
+                        val iosWebView = IOSWebView(it, scope, webViewJsBridge)
+//                        state.webSettings.let {
+//                            iosWebView.setupSettings(it)
+//                        }
+                        state.webView = iosWebView
+                        webViewJsBridge?.webView = iosWebView
                     }
-                }.also {
-                    val iosWebView = IOSWebView(it, scope, webViewJsBridge)
-                    state.webSettings.let {
-                        iosWebView.setupSettings(it)
-                    }
-                    state.webView = iosWebView
-                    webViewJsBridge?.webView = iosWebView
-                }
-            },
-            background = Color.White,
-            modifier = modifier.then(Modifier.pointerInput(Unit) {
-                // 拦截触摸
-                detectTapGestures(
-                    onPress = {
-                        val offset = it
-                        state.webView?.evaluateJavaScript(
-                            performClickAction(offset, scale),
-                        ){
-                            println("evaluateJavaScript $it")
-                        }
-                    },
-                    onLongPress = { }
-                )
-            }),
-            /* .then(Modifier.pointerInput(Unit) {
-             detectTapGestures(onPress = {
-                 onTapTransformer.value = it
-             })
-         })*/
-//                update = {
-//                    if(it.superview!=null){
-//                        it.superview!!.apply {
-//                            println("$this  ${this.findViewController()}")
+                },
+                background = Color.White,
+                modifier = modifier,
+//                onResize = { view, rect ->
+//                    val currentRect = view.frame.useContents {
+//                        this.size.let {
+//                            Size(it.width.toFloat(), it.height.toFloat())
 //                        }
 //                    }
-////                    it.setFrame(CGRectMake(0.0, 0.0, maxWidth.value.toDouble(), heightMeasure.toDouble()))
+//                    val viewSize = rect.useContents {
+//                        this.size.let {
+//                            Size(it.width.toFloat(), it.height.toFloat())
+//                        }
+//                    }
+//                    // androidx.compose.ui.geometry.Size 比较大小
+//                    if (currentRect != viewSize) {
+//                        view.setFrame(
+//                            CGRectMake(
+//                                0.0,
+//                                0.0,
+//                                viewSize.width.toDouble().dp,
+//                                viewSize.height.toDouble()
+//                            )
+//                        )
+//                        // 强制刷新布局
+//                        view.setNeedsLayout()
+//                        view.layoutIfNeeded()
+//                    }
 //                },
-//                onResize = { view, rect ->
-//
-//                },
-            onRelease = {
-                state.webView = null
-                it.removeProgressObservers(
-                    observer = observer,
-                )
-                it.navigationDelegate = null
-                onDispose(it)
-            },
-        )
+                onRelease = {
+                    state.webView = null
+                    it.removeProgressObservers(
+                        observer = observer,
+                    )
+                    it.navigationDelegate = null
+                    onDispose(it)
+                },
+            )
+        }
     }
 }
 
 private fun UIView.findViewController(): UIViewController? {
-
     var nextResponder: UIResponder? = this
-
     while (nextResponder != null) {
-
         if (nextResponder is UIViewController) {
-
             return nextResponder
-
         }
-
         nextResponder = nextResponder.nextResponder
-
     }
-
     return null
-
 }
 
 private fun performClickAction(offset: Offset, scale: Float): String {

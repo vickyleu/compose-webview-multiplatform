@@ -25,10 +25,12 @@ sealed class WebContent {
         val encoding: String = "utf-8",
         val mimeType: String? = null,
         val historyUrl: String? = null,
+        val additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) : WebContent()
 
     data class File(
         val fileName: String,
+        val additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) : WebContent()
 
     /**
@@ -37,6 +39,7 @@ sealed class WebContent {
     data class Post(
         val url: String,
         val postData: ByteArray,
+        val additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) : WebContent() {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true

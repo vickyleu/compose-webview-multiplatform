@@ -12,10 +12,22 @@ import com.multiplatform.webview.util.getPlatformVersionDouble
 import com.multiplatform.webview.util.notZero
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSError
+import platform.Foundation.NSURLAuthenticationChallenge
+import platform.Foundation.NSURLAuthenticationMethodServerTrust
+import platform.Foundation.NSURLCredential
+import platform.Foundation.NSURLSessionAuthChallengeDisposition
+import platform.Foundation.NSURLSessionAuthChallengeUseCredential
 import platform.Foundation.allHTTPHeaderFields
+import platform.Foundation.credentialForTrust
+import platform.Foundation.serverTrust
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
@@ -37,6 +49,7 @@ import platform.darwin.NSObject
 class WKNavigationDelegate(
     private val state: WebViewState,
     private val navigator: WebViewNavigator,
+    private val scope: CoroutineScope,
 ) : NSObject(), WKNavigationDelegateProtocol, WKUIDelegateProtocol {
     private var isRedirect = false
 
@@ -87,19 +100,47 @@ class WKNavigationDelegate(
         webView: WKWebView,
         didCommitNavigation: WKNavigation?,
     ) {
-//        val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
-//
-//        @Suppress("ktlint:standard:max-line-length")
-//        val script =
-//            "var meta = document.createElement('meta');meta.setAttribute('name', 'viewport'); meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${
-//                state.webSettings.zoomLevel
-//            }, user-scalable=$supportZoom'); document.getElementsByTagName('head')[0].appendChild(meta);".apply {
-//                println("didCommitNavigation:$this")
-//            }
-//        webView.evaluateJavaScript(script) { _, err ->
-//            println("didCommitNavigation err:::${err}")
-//        }
+        val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
+
+        @Suppress("ktlint:standard:max-line-length")
+        val script =
+            ("var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');" +
+                    " meta.setAttribute('content', " +
+                    "'width=device-width, initial-scale=${state.webSettings.zoomLevel}, " +
+                    "maximum-scale=${
+                        state.webSettings.zoomLevel
+                    }, user-scalable=$supportZoom'); " +
+                    "document.getElementsByTagName('head')[0].appendChild(meta);").apply {
+                println("didCommitNavigation:$this")
+            }
+        webView.evaluateJavaScript(script) { _, err ->
+            println("didCommitNavigation err:::${err}")
+        }
         KLogger.info { "didCommitNavigation" }
+    }
+
+
+    @OptIn(ExperimentalForeignApi::class)
+    override fun webView(
+        webView: WKWebView,
+        didReceiveAuthenticationChallenge: NSURLAuthenticationChallenge,
+        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit
+    ) {
+        KLogger.info {
+            "didReceiveAuthenticationChallenge ${didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod}"
+        }
+        if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    val credential =
+                        NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
+                    completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+                    KLogger.info {
+                        "didReceiveAuthenticationChallenge completionHandler ${credential}"
+                    }
+                }
+            }
+        }
     }
 
     /**
