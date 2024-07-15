@@ -136,7 +136,9 @@ class IOSWebView(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        webView.evaluateJavaScript(script) Call@{ result, error ->
+        webView.evaluateJavaScript("""(function() {
+            $script
+        })()""".trimIndent()) Call@{ result, error ->
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error  script:  $script" }
             }

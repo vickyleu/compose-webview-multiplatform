@@ -28,6 +28,7 @@ import platform.Foundation.NSURLSessionAuthChallengeUseCredential
 import platform.Foundation.allHTTPHeaderFields
 import platform.Foundation.credentialForTrust
 import platform.Foundation.serverTrust
+import platform.WebKit.WKFrameInfo
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
@@ -53,6 +54,18 @@ class WKNavigationDelegate(
 ) : NSObject(), WKNavigationDelegateProtocol, WKUIDelegateProtocol {
     private var isRedirect = false
 
+    override fun webView(
+        webView: WKWebView,
+        runJavaScriptAlertPanelWithMessage: String,
+        initiatedByFrame: WKFrameInfo,
+        completionHandler: () -> Unit
+    ) {
+        navigator.onJsAlert(runJavaScriptAlertPanelWithMessage){
+            completionHandler()
+        }
+    }
+
+
 
     override fun webView(
         webView: WKWebView,
@@ -75,6 +88,7 @@ class WKNavigationDelegate(
         }
         return null
     }
+
 
     /**
      * Called when the web view begins to receive web content.

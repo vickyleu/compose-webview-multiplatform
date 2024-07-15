@@ -18,6 +18,14 @@ import kotlinx.coroutines.withContext
  * Created By Kevin Zou On 2023/9/5
  */
 
+sealed class WebViewEvent{
+    data class JsAlert(
+        val message: String,
+        val callback: () -> Unit = {}
+    ) : WebViewEvent()
+}
+
+
 /**
  * Allows control over the navigation of a WebView from outside the composable. E.g. for performing
  * a back navigation in response to the user clicking the "up" button in a TopAppBar.
@@ -25,7 +33,11 @@ import kotlinx.coroutines.withContext
  * @see [rememberWebViewNavigator]
  */
 @Stable
-class WebViewNavigator(val coroutineScope: CoroutineScope, val requestInterceptor: RequestInterceptor? = null) {
+class WebViewNavigator(
+    private val coroutineScope: CoroutineScope,
+    val requestInterceptor: RequestInterceptor? = null,
+    private val interceptorEvent:((WebViewEvent)->Unit)? = null
+) {
     /**
      * Sealed class for constraining possible navigation events.
      */
@@ -106,6 +118,9 @@ class WebViewNavigator(val coroutineScope: CoroutineScope, val requestIntercepto
             val script: String,
             val callback: ((String) -> Unit)?,
         ) : NavigationEvent
+
+
+
     }
 
     /**
@@ -115,6 +130,13 @@ class WebViewNavigator(val coroutineScope: CoroutineScope, val requestIntercepto
     private val navigationEvents: MutableSharedFlow<NavigationEvent> = MutableSharedFlow(replay = 1)
 
 
+    fun onJsAlert(message: String,callback: (() -> Unit)) {
+        interceptorEvent?.apply {
+            coroutineScope.launch {
+                invoke(WebViewEvent.JsAlert(message, callback = callback))
+            }
+        }
+    }
 
     /**
      * Handles navigation events from the composable and calls the appropriate method on the
@@ -304,4 +326,5 @@ class WebViewNavigator(val coroutineScope: CoroutineScope, val requestIntercepto
 fun rememberWebViewNavigator(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     requestInterceptor: RequestInterceptor? = null,
-): WebViewNavigator = remember(coroutineScope) { WebViewNavigator(coroutineScope, requestInterceptor) }
+): WebViewNavigator =
+    remember(coroutineScope) { WebViewNavigator(coroutineScope, requestInterceptor) }

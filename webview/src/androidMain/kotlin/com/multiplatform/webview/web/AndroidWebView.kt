@@ -43,12 +43,16 @@ class AndroidWebView(
         mimeType: String?,
         encoding: String?,
         historyUrl: String?,
+        additionalHttpHeaders: Map<String, String>,
     ) {
         if (html == null) return
         webView.loadDataWithBaseURL(baseUrl, html, mimeType, encoding, historyUrl)
     }
 
-    override suspend fun loadHtmlFile(fileName: String) {
+    override suspend fun loadHtmlFile(
+        fileName: String,
+        additionalHttpHeaders: Map<String, String>
+    ) {
         KLogger.d {
             "loadHtmlFile: $fileName"
         }
@@ -57,7 +61,7 @@ class AndroidWebView(
 
     override fun postUrl(
         url: String,
-        postData: ByteArray,
+        postData: ByteArray, additionalHttpHeaders: Map<String, String>
     ) {
         webView.postUrl(url, postData)
     }
@@ -106,7 +110,7 @@ class AndroidWebView(
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
         webView.addJavascriptInterface(this, "androidJsBridge")
     }
-
+    @Suppress("unused")
     @JavascriptInterface
     fun call(request: String) {
         KLogger.d { "call from JS: $request" }
@@ -117,6 +121,7 @@ class AndroidWebView(
         webViewJsBridge?.dispatch(message)
     }
 
+    @Suppress("unused")
     @JavascriptInterface
     fun callAndroid(
         id: Int,

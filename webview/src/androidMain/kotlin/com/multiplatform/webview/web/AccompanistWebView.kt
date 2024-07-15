@@ -1,6 +1,5 @@
 package com.multiplatform.webview.web
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
@@ -10,6 +9,7 @@ import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -141,6 +141,7 @@ fun AccompanistWebView(
  * @param factory An optional WebView factory for using a custom subclass of WebView
  */
 @Composable
+@Suppress("DEPRECATION")
 fun AccompanistWebView(
     state: WebViewState,
     layoutParams: FrameLayout.LayoutParams,
@@ -169,6 +170,7 @@ fun AccompanistWebView(
     client.navigator = navigator
     chromeClient.setWindowManager(windowManager, context)
     chromeClient.state = state
+    chromeClient.navigator = navigator
 
     AndroidView(
         factory = { context ->
@@ -406,6 +408,7 @@ open class AccompanistWebViewClient : WebViewClient() {
  * As Accompanist Web needs to set its own web client to function, it provides this intermediary
  * class that can be overriden if further custom behaviour is required.
  */
+@Suppress("DEPRECATION")
 open class AccompanistWebChromeClient : WebChromeClient() {
     private var windowManager: WindowManager? = null
     private var context: Context? = null
@@ -415,7 +418,8 @@ open class AccompanistWebChromeClient : WebChromeClient() {
         this.context = context
 
     }
-
+    open lateinit var navigator: WebViewNavigator
+        internal set
     open lateinit var state: WebViewState
         internal set
     private var lastLoadedUrl = ""
@@ -453,6 +457,18 @@ open class AccompanistWebChromeClient : WebChromeClient() {
                 LoadingState.Loading(newProgress / 100.0f)
             }
         lastLoadedUrl = view.url ?: ""
+    }
+
+    override fun onJsAlert(
+        view: WebView?,
+        url: String?,
+        message: String?,
+        result: JsResult?
+    ): Boolean {
+        navigator.onJsAlert(message ?:return super.onJsAlert(view, url, message, result)){
+            result?.confirm()
+        }
+        return true
     }
 
     private var fullScreenView: View? = null
@@ -519,18 +535,7 @@ open class AccompanistWebChromeClient : WebChromeClient() {
         fullScreenView = rootView
     }
 
-    @SuppressLint("ObsoleteSdkInt")
-    private fun fullScreen(view: View) {
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT) {
 
-        } else {
-            view.systemUiVisibility = (View.SYSTEM_UI_FLAG_LOW_PROFILE
-                    or View.SYSTEM_UI_FLAG_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
-        }
-    }
 
     override fun onHideCustomView() {
         val f = fullScreenView
