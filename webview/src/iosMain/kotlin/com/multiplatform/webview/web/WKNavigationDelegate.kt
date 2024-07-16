@@ -118,13 +118,13 @@ class WKNavigationDelegate(
 
         @Suppress("ktlint:standard:max-line-length")
         val script =
-            ("var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');" +
-                    " meta.setAttribute('content', " +
-                    "'width=device-width, initial-scale=${state.webSettings.zoomLevel}, " +
-                    "maximum-scale=${
+            ("(function(){var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');\" +\n" +
+                    "                    \" meta.setAttribute('content', \" +\n" +
+                    "                    \"'width=device-width, initial-scale=${state.webSettings.zoomLevel}, \" +\n" +
+                    "                    \"maximum-scale=${
                         state.webSettings.zoomLevel
-                    }, user-scalable=$supportZoom'); " +
-                    "document.getElementsByTagName('head')[0].appendChild(meta);").apply {
+                    }, user-scalable=$supportZoom'); \" +\n" +
+                    "                    \"document.getElementsByTagName('head')[0].appendChild(meta);})()").apply {
                 println("didCommitNavigation:$this")
             }
         webView.evaluateJavaScript(script) { _, err ->
