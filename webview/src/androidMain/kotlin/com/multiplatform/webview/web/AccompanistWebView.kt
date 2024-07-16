@@ -175,14 +175,12 @@ fun AccompanistWebView(
     AndroidView(
         factory = { context ->
             (factory?.invoke(context) ?: WebView(context)).apply {
+                WebView.setWebContentsDebuggingEnabled(true)
                 onCreated(this)
-
                 this.layoutParams = layoutParams
-
                 state.viewState?.let {
                     this.restoreState(it)
                 }
-
                 webChromeClient = chromeClient
                 webViewClient = client
 
