@@ -58,6 +58,7 @@ class DesktopWebView(
         mimeType: String?,
         encoding: String?,
         historyUrl: String?,
+        additionalHttpHeaders: Map<String, String>,
     ) {
         KLogger.d {
             "DesktopWebView loadHtml"
@@ -67,13 +68,14 @@ class DesktopWebView(
         }
     }
 
-    override suspend fun loadHtmlFile(fileName: String) {
+    override suspend fun loadHtmlFile(fileName: String,additionalHttpHeaders: Map<String, String>,) {
         // TODO
     }
 
     override fun postUrl(
         url: String,
         postData: ByteArray,
+        additionalHttpHeaders: Map<String, String>,
     ) {
         val request =
             CefRequest.create().apply {

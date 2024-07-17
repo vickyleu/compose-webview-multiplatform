@@ -117,16 +117,24 @@ class WKNavigationDelegate(
         val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
 
         @Suppress("ktlint:standard:max-line-length")
-        val script =
-            ("(function(){var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');\" +\n" +
-                    "                    \" meta.setAttribute('content', \" +\n" +
-                    "                    \"'width=device-width, initial-scale=${state.webSettings.zoomLevel}, \" +\n" +
-                    "                    \"maximum-scale=${
-                        state.webSettings.zoomLevel
-                    }, user-scalable=$supportZoom'); \" +\n" +
-                    "                    \"document.getElementsByTagName('head')[0].appendChild(meta);})()").apply {
-                println("didCommitNavigation:$this")
-            }
+        val script = """
+                            "(function(){
+                                var meta = document.createElement('meta');
+                                meta.setAttribute('name', 'viewport');
+                                meta.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'); 
+                                document.getElementsByTagName('head')[0].appendChild(meta);
+                            })();
+        """.trimIndent()
+//        val script =
+//            ("(function(){var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');\" +\n" +
+//                    "                    \" meta.setAttribute('content', \" +\n" +
+//                    "                    \"'width=device-width, initial-scale=${state.webSettings.zoomLevel}, \" +\n" +
+//                    "                    \"maximum-scale=${
+//                        state.webSettings.zoomLevel
+//                    }, user-scalable=$supportZoom'); \" +\n" +
+//                    "                    \"document.getElementsByTagName('head')[0].appendChild(meta);})()").apply {
+//                println("didCommitNavigation:$this")
+//            }
         webView.evaluateJavaScript(script) { _, err ->
             println("didCommitNavigation err:::${err}")
         }

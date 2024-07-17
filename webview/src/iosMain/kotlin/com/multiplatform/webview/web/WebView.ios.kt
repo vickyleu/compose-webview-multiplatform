@@ -179,33 +179,8 @@ fun IOSWebView(
                 },
                 background = Color.White,
                 modifier = modifier,
-//                onResize = { view, rect ->
-//                    val currentRect = view.frame.useContents {
-//                        this.size.let {
-//                            Size(it.width.toFloat(), it.height.toFloat())
-//                        }
-//                    }
-//                    val viewSize = rect.useContents {
-//                        this.size.let {
-//                            Size(it.width.toFloat(), it.height.toFloat())
-//                        }
-//                    }
-//                    // androidx.compose.ui.geometry.Size 比较大小
-//                    if (currentRect != viewSize) {
-//                        view.setFrame(
-//                            CGRectMake(
-//                                0.0,
-//                                0.0,
-//                                viewSize.width.toDouble().dp,
-//                                viewSize.height.toDouble()
-//                            )
-//                        )
-//                        // 强制刷新布局
-//                        view.setNeedsLayout()
-//                        view.layoutIfNeeded()
-//                    }
-//                },
                 onRelease = {
+                    state.webView?.stopLoading()
                     state.webView = null
                     it.removeProgressObservers(
                         observer = observer,
