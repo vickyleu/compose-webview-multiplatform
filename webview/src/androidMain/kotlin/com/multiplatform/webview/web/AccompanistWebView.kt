@@ -291,7 +291,10 @@ open class AccompanistWebViewClient : WebViewClient() {
         // set scale level
         @Suppress("ktlint:standard:max-line-length")
         val script =
-            "var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${state.webSettings.zoomLevel}, minimum-scale=${state.webSettings.zoomLevel},user-scalable=supportZoom');document.getElementsByTagName('head')[0].appendChild(meta);"
+            "var meta = document.createElement('meta');" +
+            "meta.setAttribute('name', 'viewport');" +
+            "meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${state.webSettings.zoomLevel}, minimum-scale=${state.webSettings.zoomLevel},user-scalable=$supportZoom');" +
+            "document.getElementsByTagName('head')[0].appendChild(meta);"
         navigator.evaluateJavaScript(script)
     }
 
