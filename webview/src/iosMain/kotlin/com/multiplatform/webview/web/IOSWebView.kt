@@ -132,6 +132,28 @@ class IOSWebView(
         webView.stopLoading()
     }
 
+    override fun destroy() {
+        // 执行 JavaScript 脚本来暂停所有音视频元素
+        val pauseScript = """
+        var videos = document.querySelectorAll('video');
+        var audios = document.querySelectorAll('audio');
+        videos.forEach(function(video) {
+            video.pause();
+        });
+        audios.forEach(function(audio) {
+            audio.pause();
+        });
+    """.trimIndent()
+        webView.evaluateJavaScript(pauseScript) { _, _ ->
+            // 确保所有音视频都已暂停后再执行清理操作
+            // 停止加载并移除 WKWebView
+            webView.stopLoading()
+            webView.configuration.userContentController.removeAllUserScripts()
+            webView.configuration.userContentController.removeAllScriptMessageHandlers()
+            webView.removeFromSuperview()
+        }
+    }
+
     override fun evaluateJavaScript(
         script: String,
         callback: ((String) -> Unit)?,

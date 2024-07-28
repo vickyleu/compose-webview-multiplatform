@@ -49,6 +49,9 @@ fun <T : Any> Navigation(
 fun CustomNavigationScreen() {
     var screen by rememberSaveable { mutableStateOf("screen1") }
     Scaffold(
+        modifier = Modifier.fillMaxSize().background(Color.Transparent),
+        contentColor = Color.Transparent,
+        containerColor = Color.Transparent,
         content = {
             Navigation(screen, Modifier.fillMaxSize()) { currentScreen ->
                 if (currentScreen == "screen1") {

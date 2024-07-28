@@ -61,6 +61,7 @@ class WebViewNavigator(
          * Stop loading event.
          */
         data object StopLoading : NavigationEvent
+        data object Destory : NavigationEvent
 
         /**
          * Load url event.
@@ -151,6 +152,7 @@ class WebViewNavigator(
                     is NavigationEvent.Forward -> goForward()
                     is NavigationEvent.Reload -> reload()
                     is NavigationEvent.StopLoading -> stopLoading()
+                    is NavigationEvent.Destory -> destroy()
                     is NavigationEvent.LoadHtml ->
                         loadHtml(
                             event.html,
@@ -315,6 +317,9 @@ class WebViewNavigator(
      */
     fun stopLoading() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
+    }
+    fun destory() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Destory) }
     }
 }
 

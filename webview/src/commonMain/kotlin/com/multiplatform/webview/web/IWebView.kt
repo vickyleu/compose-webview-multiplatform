@@ -157,6 +157,8 @@ interface IWebView {
      */
     fun stopLoading()
 
+    fun destroy()
+
     /**
      * Evaluates the given JavaScript in the context of the currently displayed page.
      * and returns the result of the evaluation.

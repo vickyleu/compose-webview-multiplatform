@@ -82,6 +82,15 @@ class AndroidWebView(
         webView.stopLoading()
     }
 
+    override fun destroy() {
+        webView.stopLoading()
+        webView.destroy()
+        if(webViewJsBridge!=null){
+            webView.removeJavascriptInterface(webViewJsBridge.jsBridgeName)
+        }
+        webView.removeAllViews()
+    }
+
     override fun evaluateJavaScript(
         script: String,
         callback: ((String) -> Unit)?,
