@@ -232,10 +232,17 @@ sealed class PlatformWebSettings {
          */
         var showVerticalScrollIndicator: Boolean = true,
 
-        var isOpenConsoleLog: Boolean = false
+        var isOpenConsoleLog: Boolean = false,
+        var mediaTypesRequiringUserActionForPlayback:MediaTypesRequiringUserActionForPlayback = MediaTypesRequiringUserActionForPlayback.NONE
 
-    ) : PlatformWebSettings()
+    ) : PlatformWebSettings(){
 
+    }
+    enum class MediaTypesRequiringUserActionForPlayback{
+        ALL,
+        AUDIO,
+        VIDEO,NONE
+    }
     /**
      * Wasm web settings
      */

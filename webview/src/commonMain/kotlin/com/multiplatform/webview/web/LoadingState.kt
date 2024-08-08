@@ -24,4 +24,6 @@ sealed class LoadingState {
      * Describes a webview that has finished loading content.
      */
     data object Finished : LoadingState()
+
+    data class ErrorLoading(val error: String) : LoadingState()
 }

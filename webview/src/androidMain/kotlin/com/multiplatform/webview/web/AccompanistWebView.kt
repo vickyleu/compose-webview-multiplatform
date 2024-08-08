@@ -1,15 +1,18 @@
 package com.multiplatform.webview.web
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.JsResult
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -299,6 +302,45 @@ open class AccompanistWebViewClient : WebViewClient() {
     }
 
 
+    @SuppressLint("WebViewClientOnReceivedSslError")
+    override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+        if (error?.primaryError == SslError.SSL_IDMISMATCH) {
+            val handlerImp = handler?:return
+            val url = error.url
+            val pattern = "^(https?://)?(www\\.)?(uooconline\\.com|uoocuniversity\\.com|uooc\\.com)(/.*)?$".toRegex()
+            if (pattern.matches(url)) {
+                handlerImp.proceed()
+            } else {
+                handlerImp.cancel() // 取消不匹配的URL
+            }
+        } else {
+            try {
+                super.onReceivedSslError(view, handler, error)
+            } catch (ignored: Exception) {
+            }
+        }
+    }
+
+
+    @Deprecated("Deprecated in Java")
+    override fun onReceivedError(
+        view: WebView?,
+        errorCode: Int,
+        description: String?,
+        failingUrl: String?
+    ) {
+        when{
+            errorCode== ERROR_HOST_LOOKUP && description == "INTERNET_DISCONNECTED"->{
+                state.loadingState = LoadingState.ErrorLoading("网络加载失败，请重新检查网络")
+            }
+            description == "ADDRESS_UNREACHABLE"->{
+                state.loadingState = LoadingState.ErrorLoading("网络加载失败，请重新检查网络")
+            }
+        }
+        super.onReceivedError(view, errorCode, description, failingUrl)
+    }
+
+
     override fun onPageFinished(
         view: WebView,
         url: String?,
@@ -445,6 +487,7 @@ open class AccompanistWebChromeClient : WebChromeClient() {
 //        state.pageIcon = icon
     }
 
+
     override fun onProgressChanged(
         view: WebView,
         newProgress: Int,
@@ -459,6 +502,7 @@ open class AccompanistWebChromeClient : WebChromeClient() {
             }
         lastLoadedUrl = view.url ?: ""
     }
+
 
     override fun onJsAlert(
         view: WebView?,

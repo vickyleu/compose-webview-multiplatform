@@ -11,6 +11,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.platform.LocalDensity
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.ALL
+import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.AUDIO
+import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.NONE
+import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.VIDEO
 import com.multiplatform.webview.util.toUIColor
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
@@ -24,6 +28,10 @@ import platform.UIKit.UIScreen
 import platform.UIKit.UIScrollViewContentInsetAdjustmentBehavior
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.WebKit.WKAudiovisualMediaTypeAll
+import platform.WebKit.WKAudiovisualMediaTypeAudio
+import platform.WebKit.WKAudiovisualMediaTypeNone
+import platform.WebKit.WKAudiovisualMediaTypeVideo
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.WebKit.WKWebsiteDataStore
@@ -111,6 +119,12 @@ fun IOSWebView(
 
                     val config = WKWebViewConfiguration().apply {
                         allowsInlineMediaPlayback = true
+                        mediaTypesRequiringUserActionForPlayback = when(state.webSettings.iOSWebSettings.mediaTypesRequiringUserActionForPlayback){
+                            ALL -> WKAudiovisualMediaTypeAll
+                            AUDIO -> WKAudiovisualMediaTypeAudio
+                            VIDEO -> WKAudiovisualMediaTypeVideo
+                            NONE -> WKAudiovisualMediaTypeNone
+                        }
                         defaultWebpagePreferences.allowsContentJavaScript =
                             state.webSettings.isJavaScriptEnabled.apply {
                                 println("defaultWebpagePreferences.allowsContentJavaScript:${this}")

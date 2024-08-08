@@ -14,7 +14,7 @@ internal object KLogger : Logger(
     tag = "ComposeWebView",
 ) {
     init {
-        setMinSeverity(KLogSeverity.Info)
+        setMinSeverity(KLogSeverity.Error)
     }
 
     fun setMinSeverity(severity: KLogSeverity) {
