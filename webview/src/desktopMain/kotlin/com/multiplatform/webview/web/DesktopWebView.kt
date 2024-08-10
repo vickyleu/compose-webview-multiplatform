@@ -99,6 +99,10 @@ class DesktopWebView(
     override fun reload() = webView.reload()
 
     override fun stopLoading() = webView.stopLoad()
+    override fun destroy() {
+        stopLoading()
+        webView.close(true)
+    }
 
     override fun evaluateJavaScript(
         script: String,

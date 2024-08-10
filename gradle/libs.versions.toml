@@ -1,20 +1,17 @@
 [versions]
-activityCompose = "1.9.0"
-agp = "8.5.0"
+activityCompose = "1.9.1"
+agp = "8.5.2"
 #noinspection GradleDependency
 android-compileSdk = "34"
 android-minSdk = "24"
 android-targetSdk = "34"
 annotations = "23.0.0"
 kcef = "2024.01.07.1"
-kermit = "2.0.2"
+kermit = "2.0.3"
 kotlin = "2.0.0"
 jvmTarget = "17"
-#noinspection GradleDependency
-#compose-plugin = "1.6.11"
-compose-plugin = "1.7.0-alpha01"
+compose-plugin = "1.7.0-alpha02"
 dokka = "1.9.20"
-#maven-publish = "0.25.3"
 ktlint = "12.1.1"
 kotlinxSerializationJson = "1.6.3"
 webkit = "1.11.0"
@@ -55,7 +52,6 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-#maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 # 下面这个是假的，只是为了占位
