@@ -41,28 +41,50 @@ kotlin {
     xcodeCheck()
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                api(compose.material3)
-                @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-                implementation(compose.components.resources)
-                api(project(":webview"))
-                implementation(libs.kotlinx.atomicfu)
-                implementation(libs.kermit)
-                implementation(libs.kotlin.serialization.json)
-                implementation(libs.kotlinx.coroutines.core)
-            }
+
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.material)
+            implementation(compose.material3)
+
+            implementation(compose.foundation)
+            implementation(compose.ui)
+
+            implementation(compose.uiUtil)
+
+            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.7.0-alpha07")
+
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.components.resources)
+            api(project(":webview"))
+            implementation(libs.kotlinx.atomicfu)
+            implementation(libs.kermit)
+            implementation(libs.kotlin.serialization.json)
+            implementation(libs.coroutines.core)
+
+
+            implementation("cafe.adriel.voyager:voyager-navigator:1.1.0-beta01")
+            implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta01")
+            implementation("cafe.adriel.voyager:voyager-tab-navigator:1.1.0-beta01")
+            implementation("cafe.adriel.voyager:voyager-transitions:1.1.0-beta01")
+            implementation("cafe.adriel.voyager:voyager-bottom-sheet-navigator:1.1.0-beta01")
+
         }
-        val androidMain by getting {
+        val jvmMain = jvmMain.get()
+
+        
+        androidMain.get().apply {
+            dependsOn(jvmMain)
             dependencies {
                 api(libs.androidx.appcompat)
                 api(libs.androidx.activity.compose)
+                implementation(compose.uiTooling)
                 implementation(libs.coroutines.android)
             }
         }
+
         val desktopMain by getting {
+            dependsOn(jvmMain)
             dependencies {
                 implementation(compose.desktop.common) {
                     exclude(compose.material)

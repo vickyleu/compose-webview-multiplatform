@@ -31,7 +31,7 @@ class GreetJsMessageHandler : IJsMessageHandler {
         val data = GreetModel("KMM Received ${param.message}")
         callback(dataToJsonString(data))
 //        EventBus.post(NavigationEvent())
-        navigator?.coroutineScope?.launch {
+        navigator?.callNavigatorEvent {
             FlowEventBus.publishEvent(NavigationEvent())
         }
     }

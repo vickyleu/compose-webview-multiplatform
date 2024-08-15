@@ -1,14 +1,15 @@
 package com.kevinnzou.sample.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.BottomNavigation
-import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 
 /**
@@ -62,26 +64,30 @@ fun CustomNavigationScreen() {
             }
         },
         bottomBar = {
-            BottomNavigation {
-                BottomNavigationItem(
+            NavigationBar {
+                NavigationBarItem(
                     selected = screen == "screen1",
-                    onClick = { screen = "screen1" },
                     icon = {
                         Icon(
                             painter = rememberVectorPainter(Icons.Default.Home),
                             contentDescription = "Home",
                         )
                     },
+                    onClick = {
+                        screen = "screen1"
+                    }
                 )
-                BottomNavigationItem(
+                NavigationBarItem(
                     selected = screen == "screen2",
-                    onClick = { screen = "screen2" },
                     icon = {
                         Icon(
                             painter = rememberVectorPainter(Icons.Default.Person),
-                            contentDescription = "Personal",
+                            contentDescription = "Person",
                         )
                     },
+                    onClick = {
+                        screen = "screen2"
+                    }
                 )
             }
         },

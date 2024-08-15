@@ -60,11 +60,10 @@ class WKNavigationDelegate(
         initiatedByFrame: WKFrameInfo,
         completionHandler: () -> Unit
     ) {
-        navigator.onJsAlert(runJavaScriptAlertPanelWithMessage){
+        navigator.onJsAlert(runJavaScriptAlertPanelWithMessage) {
             completionHandler()
         }
     }
-
 
 
     override fun webView(

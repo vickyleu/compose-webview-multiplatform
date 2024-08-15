@@ -1,15 +1,16 @@
 package com.kevinnzou.sample
 
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.material.BottomNavigation
-import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import cafe.adriel.voyager.navigator.tab.CurrentTab
@@ -22,6 +23,7 @@ import com.kevinnzou.sample.navigation.PersonalTab
 /**
  * Created By Kevin Zou On 2023/12/8
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoyagerNavigationSample(navHostController: NavHostController? = null) {
     TabNavigator(HomeTab) {
@@ -45,7 +47,7 @@ fun VoyagerNavigationSample(navHostController: NavHostController? = null) {
                 CurrentTab()
             },
             bottomBar = {
-                BottomNavigation {
+                NavigationBar {
                     TabNavigationItem(HomeTab)
                     TabNavigationItem(PersonalTab)
                 }
@@ -57,8 +59,7 @@ fun VoyagerNavigationSample(navHostController: NavHostController? = null) {
 @Composable
 private fun RowScope.TabNavigationItem(tab: Tab) {
     val tabNavigator = LocalTabNavigator.current
-
-    BottomNavigationItem(
+    NavigationBarItem(
         selected = tabNavigator.current.key == tab.key,
         onClick = { tabNavigator.current = tab },
         icon = { Icon(painter = tab.options.icon!!, contentDescription = tab.options.title) },

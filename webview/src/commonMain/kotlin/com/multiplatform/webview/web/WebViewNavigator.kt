@@ -139,6 +139,14 @@ class WebViewNavigator(
         }
     }
 
+
+     fun callNavigatorEvent(event: suspend()->Unit) {
+        coroutineScope.launch {
+            event()
+        }
+    }
+
+
     /**
      * Handles navigation events from the composable and calls the appropriate method on the
      * [IWebView].

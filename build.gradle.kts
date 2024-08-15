@@ -18,10 +18,19 @@ if (System.getenv("JITPACK") == null) {
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
+
+
+    /*id(libs.plugins.kotlin.multiplatform.get().pluginId).apply(false) //
+    id(libs.plugins.kotlin.parcelize.get().pluginId).apply(false)
+    id(libs.plugins.android.application.get().pluginId).apply(false)
+    id(libs.plugins.android.library.get().pluginId).apply(false)*/
+
+
     alias(libs.plugins.kotlin.multiplatform).apply(false) //
     alias(libs.plugins.kotlin.parcelize).apply(false)
     alias(libs.plugins.android.application).apply(false)
     alias(libs.plugins.android.library).apply(false)
+
 
     alias(libs.plugins.jetbrains.compose).apply(false)
     alias(libs.plugins.compose.compiler).apply(false)
@@ -51,7 +60,7 @@ subprojects {
 //        }
     }
     configurations.all {
-        exclude(group = "org.jetbrains.compose.material", module = "material")
+//        exclude(group = "org.jetbrains.compose.material", module = "material")
         resolutionStrategy {
             eachDependency {
                 if (requested.group == "org.jetbrains.kotlin") {
@@ -61,7 +70,7 @@ subprojects {
                 ) {
                     useVersion(libs.versions.compose.plugin.get())
                 } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
-                    useVersion(libs.versions.annotations.get())
+//                    useVersion(libs.versions.annotations.get()) //TODO
                 }
             }
         }

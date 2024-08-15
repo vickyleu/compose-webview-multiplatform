@@ -1,8 +1,6 @@
 @file:Suppress("OPT_IN_USAGE")
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem
-import org.jetbrains.dokka.base.DokkaBase
-import org.jetbrains.dokka.base.DokkaBaseConfiguration
 import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -66,7 +64,7 @@ kotlin {
                 implementation(compose.foundation)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 implementation(compose.components.resources)
-                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.coroutines.core)
                 implementation(libs.kermit)
                 implementation(libs.kotlin.serialization.json)
             }

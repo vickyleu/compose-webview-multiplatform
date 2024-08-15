@@ -179,10 +179,12 @@ val WebStateSaver: Saver<WebViewState, Any> =
                     scrollOffsetKey to it.webView?.scrollOffset(),
                 )
             },
+
             restore = {
                 KLogger.info {
                     "WebViewStateSaver Restore: ${it[pageTitleKey]}, ${it[lastLoadedUrlKey]}, ${it["scrollOffset"]}, ${it[stateBundleKey]}"
                 }
+                @Suppress("UNCHECKED_CAST")
                 val scrollOffset = it[scrollOffsetKey] as Pair<Int, Int>? ?: (0 to 0)
                 val bundle = it[stateBundleKey] as WebViewBundle?
                 WebViewState(WebContent.NavigatorOnly).apply {

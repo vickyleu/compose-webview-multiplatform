@@ -184,9 +184,6 @@ fun IOSWebView(
                         }
                     }.also {
                         val iosWebView = IOSWebView(it, scope, webViewJsBridge)
-//                        state.webSettings.let {
-//                            iosWebView.setupSettings(it)
-//                        }
                         state.webView = iosWebView
                         webViewJsBridge?.webView = iosWebView
                     }
