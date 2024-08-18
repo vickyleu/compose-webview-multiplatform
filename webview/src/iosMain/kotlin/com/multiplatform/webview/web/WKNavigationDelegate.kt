@@ -124,16 +124,6 @@ class WKNavigationDelegate(
                                 document.getElementsByTagName('head')[0].appendChild(meta);
                             })();
         """.trimIndent()
-//        val script =
-//            ("(function(){var meta = document.createElement('meta');meta.setAttribute('name', 'viewport');\" +\n" +
-//                    "                    \" meta.setAttribute('content', \" +\n" +
-//                    "                    \"'width=device-width, initial-scale=${state.webSettings.zoomLevel}, \" +\n" +
-//                    "                    \"maximum-scale=${
-//                        state.webSettings.zoomLevel
-//                    }, user-scalable=$supportZoom'); \" +\n" +
-//                    "                    \"document.getElementsByTagName('head')[0].appendChild(meta);})()").apply {
-//                println("didCommitNavigation:$this")
-//            }
         webView.evaluateJavaScript(script) { _, err ->
             println("didCommitNavigation err:::${err}")
         }

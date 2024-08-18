@@ -109,13 +109,13 @@ fun IOSWebView(
         ) {
             UIKitView(
                 factory = {
-                    val dataStore = WKWebsiteDataStore.defaultDataStore()
+                    /*val dataStore = WKWebsiteDataStore.defaultDataStore()
                     val date = NSDate(timeIntervalSinceReferenceDate = 0.0)
                     dataStore.removeDataOfTypes(
                         WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince = date
                     ) {
                         println("Cache cleared")
-                    }
+                    }*/
 
                     val config = WKWebViewConfiguration().apply {
                         allowsInlineMediaPlayback = true
@@ -126,17 +126,13 @@ fun IOSWebView(
                             NONE -> WKAudiovisualMediaTypeNone
                         }
                         defaultWebpagePreferences.allowsContentJavaScript =
-                            state.webSettings.isJavaScriptEnabled.apply {
-                                println("defaultWebpagePreferences.allowsContentJavaScript:${this}")
-                            }
+                            state.webSettings.isJavaScriptEnabled
                         preferences.apply {
                             setValue(
                                 state.webSettings.allowFileAccessFromFileURLs,
                                 forKey = "allowFileAccessFromFileURLs",
                             )
-                            javaScriptEnabled = state.webSettings.isJavaScriptEnabled.apply {
-                                println("preferences.javaScriptEnabled:${this}")
-                            }
+                            javaScriptEnabled = state.webSettings.isJavaScriptEnabled
                         }
                         this.setValue(
                             state.webSettings.allowUniversalAccessFromFileURLs,
@@ -155,7 +151,6 @@ fun IOSWebView(
                         this.addProgressObservers(
                             observer = observer,
                         )
-//                        this.UIDelegate = navigationDelegate
                         this.navigationDelegate = navigationDelegate
                         state.webSettings.let {
                             val backgroundColor =
@@ -172,6 +167,9 @@ fun IOSWebView(
                         state.webSettings.iOSWebSettings.let {
                             with(scrollView) {
                                 bounces = it.bounces
+                                alwaysBounceHorizontal = bounces
+                                alwaysBounceVertical = bounces
+
                                 scrollEnabled = it.scrollEnabled
                                 showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
                                 showsVerticalScrollIndicator = it.showVerticalScrollIndicator
