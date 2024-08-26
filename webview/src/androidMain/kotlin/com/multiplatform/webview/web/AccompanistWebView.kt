@@ -17,6 +17,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
+import android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -205,6 +206,7 @@ fun AccompanistWebView(
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             safeBrowsingEnabled = it.safeBrowsingEnabled
                         }
+                        mixedContentMode =  WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             isAlgorithmicDarkeningAllowed = it.isAlgorithmicDarkeningAllowed
                         }
