@@ -102,6 +102,14 @@ tasks.register("deletePackages") {
     val mavenAuthor = "vickyleu"
     val mavenGroup = "com.$mavenAuthor.$rootProjectName"
 
+    var versionCount:Int? = null
+
+    if(true){
+        val map = mapOf("1.0.2" to 1,"1.0.3" to 2)
+        versionCount=map["1.0.2"]
+    }
+
+
     group = "publishing"
     description = "Delete all packages in the GitHub Packages registry"
 
@@ -126,6 +134,7 @@ tasks.register("deletePackages") {
         "Authorization" to "Bearer ${myExtra["githubToken"]}",
         "X-GitHub-Api-Version" to "2022-11-28"
     )
+    // 如何指定一个版本,比如有1.0.2和1.0.3两个版本，如何指定删除1.0.2版本
     doLast {
         runBlocking {
             val executor = Executors.newFixedThreadPool(10)
@@ -140,9 +149,12 @@ tasks.register("deletePackages") {
             fetchJobs.awaitAll().forEach { packages ->
                 allPackages.addAll(packages)
             }
+
             val deleteJobs = allPackages.filter { pkg ->
                 val packageName = pkg["name"] as String
-                packageName.contains(keyword)
+                packageName.contains(keyword) && if(versionCount!=null){
+                    pkg["version_count"].toString().toInt() == versionCount
+                }else true
             }.map { pkg ->
                 val packageType = pkg["package_type"] as String
                 val packageName = pkg["name"] as String

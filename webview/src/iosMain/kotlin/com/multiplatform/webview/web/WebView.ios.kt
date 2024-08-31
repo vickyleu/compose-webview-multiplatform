@@ -4,12 +4,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import androidx.compose.ui.viewinterop.UIKitView
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.ALL
 import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiringUserActionForPlayback.AUDIO
@@ -82,7 +86,7 @@ fun Size.isLargerThan(other: Size): Boolean {
 /**
  * iOS WebView implementation.
  */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun IOSWebView(
     state: WebViewState,
@@ -186,7 +190,6 @@ fun IOSWebView(
                         webViewJsBridge?.webView = iosWebView
                     }
                 },
-                background = Color.White,
                 modifier = modifier,
                 onRelease = {
                     state.webView?.stopLoading()
@@ -197,6 +200,13 @@ fun IOSWebView(
                     it.navigationDelegate = null
                     onDispose(it)
                 },
+                properties = UIKitInteropProperties(
+                    interactionMode= UIKitInteropInteractionMode.Cooperative(
+                        delayMillis = 1,
+                    ),
+//                    isInteractive = true,
+                    isNativeAccessibilityEnabled = false
+                )
             )
         }
     }
