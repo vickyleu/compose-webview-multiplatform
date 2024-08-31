@@ -204,7 +204,6 @@ fun IOSWebView(
                     interactionMode= UIKitInteropInteractionMode.Cooperative(
                         delayMillis = 1,
                     ),
-//                    isInteractive = true,
                     isNativeAccessibilityEnabled = false
                 )
             )
