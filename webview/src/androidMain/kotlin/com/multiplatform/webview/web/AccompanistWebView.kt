@@ -571,7 +571,9 @@ open class AccompanistWebChromeClient : WebChromeClient() {
                 or WindowManager.LayoutParams.FLAG_FULLSCREEN
                 or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
                 or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         layoutParams.format = android.graphics.PixelFormat.TRANSPARENT
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
