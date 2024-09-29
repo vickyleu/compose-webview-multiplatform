@@ -17,7 +17,9 @@ interface IJsMessageHandler {
      */
     fun methodName(): String
 
-    fun isCallbackMethod():Boolean
+    fun isSyncCallbackMethod():Boolean
+
+    fun isAsyncCallbackMethod():Boolean
 
 
     fun canHandle(methodName: String) = methodName() == methodName
