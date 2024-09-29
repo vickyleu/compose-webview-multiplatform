@@ -39,7 +39,8 @@ internal class JsMessageDispatcher {
 
     fun postWebviewDelegateMethod(webView: IWebView?, jsBridgeName: String) {
         jsHandlerMap.forEach { (key, value) ->
-            webView?.evaluateJavaScript("""
+            webView?.evaluateJavaScript(
+                """
             window.$jsBridgeName.${key} = function (...args) {
                 function isJsonString(str) {
                      try {
@@ -59,12 +60,24 @@ internal class JsMessageDispatcher {
                             return acc;
                         }, {}));
                     }
-                    window.$jsBridgeName.callNative('$key', params);
+                    ${
+                    if (value.isCallbackMethod()) {
+                        """return new Promise((resolve, reject) => {
+                                window.$jsBridgeName.callNative('$key', params, function (res) {
+                                    resolve(res);  // 将返回值通过 resolve 返回
+                                });
+                            });
+                        });""".trimIndent()
+                    } else {
+                        """window.$jsBridgeName.callNative('$key', params);""".trimIndent()
+                    }
+                }
                 } else {
                     console.error('Invalid number of arguments for ${key}');
                 }
             };
-        """.trimIndent())
+        """.trimIndent()
+            )
         }
     }
 }

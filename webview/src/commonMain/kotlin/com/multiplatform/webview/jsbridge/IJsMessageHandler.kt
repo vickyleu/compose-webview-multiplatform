@@ -16,6 +16,10 @@ interface IJsMessageHandler {
      * The name of the method that will be called on the JS side.
      */
     fun methodName(): String
+
+    fun isCallbackMethod():Boolean
+
+
     fun canHandle(methodName: String) = methodName() == methodName
 
 

@@ -141,7 +141,7 @@ buildscript {
     }
 }
 group = "com.vickyleu.webview"
-version = "1.0.3"
+version = "1.0.2"
 
 tasks.withType<PublishToMavenRepository> {
     val isMac = getCurrentOperatingSystem().isMacOsX
