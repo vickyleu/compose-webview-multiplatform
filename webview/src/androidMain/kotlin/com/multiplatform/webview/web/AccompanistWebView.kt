@@ -307,19 +307,57 @@ open class AccompanistWebViewClient : WebViewClient() {
     @SuppressLint("WebViewClientOnReceivedSslError")
     override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
         if (error?.primaryError == SslError.SSL_IDMISMATCH) {
-            val handlerImp = handler?:return
+            val handlerImp = handler?:return kotlin.run {
+                try {
+                    super.onReceivedSslError(view, handler, error)
+                } catch (ignored: Exception) {
+                }
+            }
             val url = error.url
-            val pattern = "^(https?://)?(www\\.)?(uooconline\\.com|uoocuniversity\\.com|uooc\\.com)(/.*)?$".toRegex()
-            if (pattern.matches(url)) {
-                handlerImp.proceed()
-            } else {
+            if(state.webSettings.sslPiningHosts.isNotEmpty()){
+                val str = state.webSettings.sslPiningHosts.joinToString("|") {
+                    it.split(".").joinToString("\\\\.")
+                }
+                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
+                if (pattern.matches(url)) {
+                    handlerImp.proceed()
+                } else {
+                    handlerImp.cancel() // 取消不匹配的URL
+                }
+            }else {
                 handlerImp.cancel() // 取消不匹配的URL
             }
         } else {
-            try {
-                super.onReceivedSslError(view, handler, error)
-            } catch (ignored: Exception) {
+
+            if(state.webSettings.sslPiningHosts.isNotEmpty()){
+                val handlerImp = handler?:return kotlin.run {
+                    try {
+                        super.onReceivedSslError(view, handler, error)
+                    } catch (ignored: Exception) {
+                    }
+                }
+                val str = state.webSettings.sslPiningHosts.joinToString("|") {
+                    it.split(".").joinToString("\\\\.")
+                }
+                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
+                val url = error?.url?:return kotlin.run {
+                    try {
+                        super.onReceivedSslError(view, handler, error)
+                    } catch (ignored: Exception) {
+                    }
+                }
+                if (pattern.matches(url)) {
+                    handlerImp.proceed()
+                } else {
+                    handlerImp.cancel() // 取消不匹配的URL
+                }
+            }else {
+                try {
+                    super.onReceivedSslError(view, handler, error)
+                } catch (ignored: Exception) {
+                }
             }
+
         }
     }
 

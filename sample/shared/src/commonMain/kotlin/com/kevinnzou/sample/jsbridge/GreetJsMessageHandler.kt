@@ -19,6 +19,14 @@ class GreetJsMessageHandler : IJsMessageHandler {
         return "Greet"
     }
 
+    override fun isSyncCallbackMethod(): Boolean {
+        return false
+    }
+
+    override fun isAsyncCallbackMethod(): Boolean {
+        return false
+    }
+
     override fun handle(
         message: JsMessage,
         navigator: WebViewNavigator?,

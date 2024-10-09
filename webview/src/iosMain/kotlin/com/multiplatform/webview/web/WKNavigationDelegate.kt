@@ -23,6 +23,7 @@ import platform.Foundation.NSError
 import platform.Foundation.NSURLAuthenticationChallenge
 import platform.Foundation.NSURLAuthenticationMethodServerTrust
 import platform.Foundation.NSURLCredential
+import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
 import platform.Foundation.NSURLSessionAuthChallengeDisposition
 import platform.Foundation.NSURLSessionAuthChallengeUseCredential
 import platform.Foundation.allHTTPHeaderFields
@@ -143,11 +144,24 @@ class WKNavigationDelegate(
         if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
             scope.launch {
                 withContext(Dispatchers.IO) {
-                    val credential =
-                        NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                    completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-                    KLogger.info {
-                        "didReceiveAuthenticationChallenge completionHandler ${credential}"
+                    val url = didReceiveAuthenticationChallenge.protectionSpace.host
+                    if(state.webSettings.sslPiningHosts.isNotEmpty()){
+                        val str = state.webSettings.sslPiningHosts.joinToString("|") {
+                            it.split(".").joinToString("\\\\.")
+                        }
+                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
+                        if (pattern.matches(url)) {
+                            val credential =
+                                NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
+                            completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+                            KLogger.info {
+                                "didReceiveAuthenticationChallenge completionHandler ${credential}"
+                            }
+                        } else {
+                            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
+                        }
+                    }else {
+                        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
                     }
                 }
             }

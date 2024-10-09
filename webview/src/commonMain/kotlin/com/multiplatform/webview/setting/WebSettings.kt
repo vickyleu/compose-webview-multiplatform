@@ -90,6 +90,9 @@ class WebSettings {
      */
     var backgroundColor = Color.Transparent
 
+
+    var sslPiningHosts: List<String> = emptyList()
+
     /**
      * Android platform specific settings
      */
