@@ -316,9 +316,9 @@ open class AccompanistWebViewClient : WebViewClient() {
             val url = error.url
             if(state.webSettings.sslPiningHosts.isNotEmpty()){
                 val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                    it.split(".").joinToString("\\\\.")
+                    it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
                 }
-                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
+                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)?($str)(/.*)?$".toRegex()
                 if (pattern.matches(url)) {
                     handlerImp.proceed()
                 } else {
@@ -337,9 +337,9 @@ open class AccompanistWebViewClient : WebViewClient() {
                     }
                 }
                 val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                    it.split(".").joinToString("\\\\.")
+                    it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
                 }
-                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
+                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)?($str)(/.*)?$".toRegex()
                 val url = error?.url?:return kotlin.run {
                     try {
                         super.onReceivedSslError(view, handler, error)

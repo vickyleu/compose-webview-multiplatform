@@ -15,6 +15,7 @@ internal object KLogger : Logger(
 ) {
     init {
         setMinSeverity(KLogSeverity.Error)
+//        setMinSeverity(KLogSeverity.Verbose)
     }
 
     fun setMinSeverity(severity: KLogSeverity) {
@@ -23,6 +24,7 @@ internal object KLogger : Logger(
 
     // For iOS, it will not print out the log if the severity is upper than Debug in AS.
     fun info(msg: () -> String) {
+//        println("INFO: ${msg()}")
         d { msg() }
     }
 }

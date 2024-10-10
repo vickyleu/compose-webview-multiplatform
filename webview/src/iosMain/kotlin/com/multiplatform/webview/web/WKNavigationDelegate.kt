@@ -144,13 +144,22 @@ class WKNavigationDelegate(
         if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
             scope.launch {
                 withContext(Dispatchers.IO) {
-                    val url = didReceiveAuthenticationChallenge.protectionSpace.host
+                    val protocol = didReceiveAuthenticationChallenge.protectionSpace.protocol
+                    val host = didReceiveAuthenticationChallenge.protectionSpace.host
+                    val port = didReceiveAuthenticationChallenge.protectionSpace.port
+                    // 手动拼接 URL
+                    val fullUrl = "${protocol?.let { "$it://" }}$host${port.let { 
+                        when(it){
+                            80L, 443L -> ""
+                            else -> ":$it"
+                        }
+                    }}"
                     if(state.webSettings.sslPiningHosts.isNotEmpty()){
                         val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                            it.split(".").joinToString("\\\\.")
+                            it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
                         }
-                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)?($str)(/.*)?$".toRegex()
-                        if (pattern.matches(url)) {
+                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)?($str)(/.*)?$".toRegex()
+                        if (pattern.matches(fullUrl)) {
                             val credential =
                                 NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
                             completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
