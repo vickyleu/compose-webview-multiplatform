@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -15,10 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,12 +55,18 @@ import kotlinx.coroutines.flow.filter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BasicWebViewSample(navHostController: NavHostController? = null) {
-    val initialUrl = "https://github.com/KevinnZou/compose-webview-multiplatform"
+//    val initialUrl = "https://github.com/KevinnZou/compose-webview-multiplatform"
+    val initialUrl =
+        "https://meeting.tencent.com/v2/login/middle?client_key=eJxMkV1z4iwcxb8Ltz62-IEEcOa5sMak09XtS9xWe5NJgKTUbaBJzFp39rvvaGNnb88BzuF3fqPVIr3IlXK7usu6D2-QBDH030m22tSdLa1p0AQRYEJgTmUGjAEElEtMgQSYUDKcz723Osu7jDYaTRAe5FZvs5OFJggwcC4lg8Eze28bk*VldwoBgc*3etO01tXHZEwY5lhi-GV29u1YFDgRIRWSnp-76Spbn7-Rti6zOs-bcw9boQm6bxl5hvRy9Lr9kF7h27TqSRC-3reiv46SuLzsd7q5r2eRiZ6c8-kvfrMOk9H3PvTropjO20Q3Sxcniu-XLz-M4sGX5YG4cHGInw-NZn6XwHaVxsn1Y3iD9yXm85qk8ccIjzaXh*WqeiiY15tlP9-48tFXLVvcRnfB6*q9eUpvr77t0ocp3Qd6-bL8fyjemOqThAgHRZveKpOdkAbiSgig0ZjzORuz6Ww6lozLMZ7NQM7w9CqiwjXVxc45daHcm3et*WeZz1nCUASChlLyM2G3NXX2lVwdBv3dvhlLQzRBRnJSqsIUmhXagJEyLKQEepwJtIFAQvFF-hiiCgkqzzGBsmQKIM*lVkYGQBTnChfoz98AAAD--*LnwRE_&redirect_url=https%3A%2F%2Fmeeting.tencent.com%2Fuser-center%2Fshared-record-info%3Fid%3D0c431061-b643-4ae9-a786-beae78606c9b%26is-single%3Dtrue"
     val state = rememberWebViewState(url = initialUrl)
     DisposableEffect(Unit) {
         state.webSettings.apply {
-            logSeverity = KLogSeverity.Debug
-            sslPiningHosts = listOf("uooc.com","baidu.com","github.com")
+            logSeverity = KLogSeverity.Verbose
+            sslPiningHosts = listOf(
+                "uooc.com", "baidu.com",
+                "github.com",
+                "tencent.com",
+            )
             customUserAgentString =
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1) AppleWebKit/625.20 (KHTML, like Gecko) Version/14.3.43 Safari/625.20"
         }
@@ -99,9 +105,9 @@ internal fun BasicWebViewSample(navHostController: NavHostController? = null) {
                             contentDescription = "Error",
                             colorFilter = ColorFilter.tint(Color.Red),
                             modifier =
-                                Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(8.dp),
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(8.dp),
                         )
                     }
 
@@ -127,7 +133,7 @@ internal fun BasicWebViewSample(navHostController: NavHostController? = null) {
             val loadingState = state.loadingState
             if (loadingState is LoadingState.Loading) {
                 LinearProgressIndicator(
-                    progress = loadingState.progress,
+                    progress = { loadingState.progress },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -135,8 +141,8 @@ internal fun BasicWebViewSample(navHostController: NavHostController? = null) {
             WebView(
                 state = state,
                 modifier =
-                    Modifier
-                        .fillMaxSize(),
+                Modifier
+                    .fillMaxSize(),
                 navigator = navigator,
             )
         }

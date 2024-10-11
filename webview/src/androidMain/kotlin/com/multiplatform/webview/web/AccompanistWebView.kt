@@ -328,36 +328,10 @@ open class AccompanistWebViewClient : WebViewClient() {
                 handlerImp.cancel() // 取消不匹配的URL
             }
         } else {
-
-            if(state.webSettings.sslPiningHosts.isNotEmpty()){
-                val handlerImp = handler?:return kotlin.run {
-                    try {
-                        super.onReceivedSslError(view, handler, error)
-                    } catch (ignored: Exception) {
-                    }
-                }
-                val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                    it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
-                }
-                val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)?($str)(/.*)?$".toRegex()
-                val url = error?.url?:return kotlin.run {
-                    try {
-                        super.onReceivedSslError(view, handler, error)
-                    } catch (ignored: Exception) {
-                    }
-                }
-                if (pattern.matches(url)) {
-                    handlerImp.proceed()
-                } else {
-                    handlerImp.cancel() // 取消不匹配的URL
-                }
-            }else {
-                try {
-                    super.onReceivedSslError(view, handler, error)
-                } catch (ignored: Exception) {
-                }
+            try {
+                super.onReceivedSslError(view, handler, error)
+            } catch (ignored: Exception) {
             }
-
         }
     }
 
