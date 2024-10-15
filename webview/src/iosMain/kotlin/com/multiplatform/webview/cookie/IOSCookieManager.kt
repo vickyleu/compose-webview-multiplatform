@@ -57,32 +57,32 @@ object IOSCookieManager : CookieManager {
                         }
                     }
                 }
-                it.resume(cookieList, {})
+                it.resume(cookieList) { cause, _, _ -> }
             }
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun removeAllCookies() =
-        suspendCancellableCoroutine {
+        suspendCancellableCoroutine<Unit> {
             cookieStore.getAllCookies { cookies ->
                 cookies?.forEach { cookie ->
                     cookieStore.deleteCookie(cookie as NSHTTPCookie) {}
                 }
                 KLogger.d(tag = "iOSCookieManager") { ("IOSCookieManager removeAllCookies: $cookies") }
-                it.resume(Unit, {})
+                it.resume(Unit) { cause, _, _ -> }
             }
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun removeCookies(url: String) =
-        suspendCancellableCoroutine {
+        suspendCancellableCoroutine<Unit> {
             cookieStore.getAllCookies { cookies ->
                 cookies?.filter { cookie ->
                     cookie is NSHTTPCookie && url.contains(cookie.domain)
                 }?.forEach { cookie ->
                     cookieStore.deleteCookie(cookie as NSHTTPCookie) {}
                 }
-                it.resume(Unit, {})
+                it.resume(Unit) { cause, _, _ -> }
             }
         }
 
@@ -90,7 +90,7 @@ object IOSCookieManager : CookieManager {
     override suspend fun setCookie(
         url: String,
         cookie: Cookie,
-    ) = suspendCancellableCoroutine {
+    ) = suspendCancellableCoroutine<Unit> {
         val iCookie =
             NSHTTPCookie.cookieWithProperties(
                 mapOf(
@@ -113,7 +113,7 @@ object IOSCookieManager : CookieManager {
         cookieStore.setCookie(
             iCookie!!,
             completionHandler = {
-                it.resume(Unit, {})
+                it.resume(Unit) { cause, _, _ -> }
                 KLogger.d(tag = "iOSCookieManager") { ("IOSCookieManager setCookie: $cookie") }
             },
         )

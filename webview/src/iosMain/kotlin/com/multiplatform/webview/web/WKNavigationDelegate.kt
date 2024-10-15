@@ -47,7 +47,7 @@ import platform.darwin.NSObject
 /**
  * Navigation delegate for the WKWebView
  */
-@Suppress("CONFLICTING_OVERLOADS")
+//@Suppress("CONFLICTING_OVERLOADS")
 class WKNavigationDelegate(
     private val state: WebViewState,
     private val navigator: WebViewNavigator,
@@ -176,7 +176,7 @@ class WKNavigationDelegate(
                                     }
                                 }else {
                                     KLogger.info {
-                                        "didReceiveAuthenticationChallenge ${fullUrl}"
+                                        "didReceiveAuthenticationChallenge $fullUrl"
                                     }
                                     completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
                                 }
