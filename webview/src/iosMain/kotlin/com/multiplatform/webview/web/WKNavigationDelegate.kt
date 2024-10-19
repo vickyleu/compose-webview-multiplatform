@@ -115,18 +115,20 @@ class WKNavigationDelegate(
         didCommitNavigation: WKNavigation?,
     ) {
         val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
-
         @Suppress("ktlint:standard:max-line-length")
-        val script = """
-                            "(function(){
+        val script = """(function(){
                                 var meta = document.createElement('meta');
                                 meta.setAttribute('name', 'viewport');
-                                meta.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'); 
+                                meta.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=$supportZoom'); 
                                 document.getElementsByTagName('head')[0].appendChild(meta);
                             })();
         """.trimIndent()
-        webView.evaluateJavaScript(script) { _, err ->
-            println("didCommitNavigation err:::${err}")
+        webView.evaluateJavaScript(script) { resp, err ->
+            if(err!=null){
+                println("didCommitNavigation err:::${err}")
+            }else if(resp!=null){
+                println("didCommitNavigation resp:::${resp}")
+            }
         }
         KLogger.info { "didCommitNavigation" }
     }
