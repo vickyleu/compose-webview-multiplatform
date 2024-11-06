@@ -18,6 +18,8 @@ class WebSettings {
      */
     var isJavaScriptEnabled = true
 
+    var isInspectable = true
+
     /**
      * WebView's user-agent string.
      * Default is null.

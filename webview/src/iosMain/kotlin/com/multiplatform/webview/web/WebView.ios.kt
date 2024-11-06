@@ -22,6 +22,9 @@ import com.multiplatform.webview.setting.PlatformWebSettings.MediaTypesRequiring
 import com.multiplatform.webview.util.toUIColor
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSDate
@@ -144,7 +147,10 @@ fun IOSWebView(
                         )
                     }
                     factory(WebViewFactoryParam(config)).apply {
-                        this.setInspectable(true)
+                        // iOS 16.4 才添加setInspectable方法,需要判断
+                        if(available(OS.Ios to OSVersion(major = 16, minor = 4))){
+                            this.setInspectable(state.webSettings.isInspectable)
+                        }
                         setFrame(CGRectMake(0.0, 0.0,maxWidth.value.toDouble(),120.0))
                         onCreated(this)
                         state.viewState?.let {

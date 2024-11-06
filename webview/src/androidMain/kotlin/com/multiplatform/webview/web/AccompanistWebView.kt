@@ -179,7 +179,8 @@ fun AccompanistWebView(
     AndroidView(
         factory = { context ->
             (factory?.invoke(context) ?: WebView(context)).apply {
-                WebView.setWebContentsDebuggingEnabled(true)
+                WebView.setWebContentsDebuggingEnabled(state.webSettings.isInspectable)
+
                 onCreated(this)
                 this.layoutParams = layoutParams
                 state.viewState?.let {
