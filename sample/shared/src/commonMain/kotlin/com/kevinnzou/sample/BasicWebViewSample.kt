@@ -55,9 +55,7 @@ import kotlinx.coroutines.flow.filter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BasicWebViewSample(navHostController: NavHostController? = null) {
-//    val initialUrl = "https://github.com/KevinnZou/compose-webview-multiplatform"
-    val initialUrl =
-        "https://meeting.tencent.com/v2/login/middle?client_key=eJxMkV1z4iwcxb8Ltz62-IEEcOa5sMak09XtS9xWe5NJgKTUbaBJzFp39rvvaGNnb88BzuF3fqPVIr3IlXK7usu6D2-QBDH030m22tSdLa1p0AQRYEJgTmUGjAEElEtMgQSYUDKcz723Osu7jDYaTRAe5FZvs5OFJggwcC4lg8Eze28bk*VldwoBgc*3etO01tXHZEwY5lhi-GV29u1YFDgRIRWSnp-76Spbn7-Rti6zOs-bcw9boQm6bxl5hvRy9Lr9kF7h27TqSRC-3reiv46SuLzsd7q5r2eRiZ6c8-kvfrMOk9H3PvTropjO20Q3Sxcniu-XLz-M4sGX5YG4cHGInw-NZn6XwHaVxsn1Y3iD9yXm85qk8ccIjzaXh*WqeiiY15tlP9-48tFXLVvcRnfB6*q9eUpvr77t0ocp3Qd6-bL8fyjemOqThAgHRZveKpOdkAbiSgig0ZjzORuz6Ww6lozLMZ7NQM7w9CqiwjXVxc45daHcm3et*WeZz1nCUASChlLyM2G3NXX2lVwdBv3dvhlLQzRBRnJSqsIUmhXagJEyLKQEepwJtIFAQvFF-hiiCgkqzzGBsmQKIM*lVkYGQBTnChfoz98AAAD--*LnwRE_&redirect_url=https%3A%2F%2Fmeeting.tencent.com%2Fuser-center%2Fshared-record-info%3Fid%3D0c431061-b643-4ae9-a786-beae78606c9b%26is-single%3Dtrue"
+    val initialUrl = "https://github.com/KevinnZou/compose-webview-multiplatform"
     val state = rememberWebViewState(url = initialUrl)
     DisposableEffect(Unit) {
         state.webSettings.apply {

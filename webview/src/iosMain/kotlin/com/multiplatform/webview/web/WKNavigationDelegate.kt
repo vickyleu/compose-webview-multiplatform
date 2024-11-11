@@ -141,61 +141,48 @@ class WKNavigationDelegate(
         completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit
     ) {
         if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
-            scope.launch {
-                withContext(Dispatchers.IO) {
-                    val protocol = didReceiveAuthenticationChallenge.protectionSpace.protocol
-                    val host = didReceiveAuthenticationChallenge.protectionSpace.host
-                    val port = didReceiveAuthenticationChallenge.protectionSpace.port
-                    // 手动拼接 URL
-                    withContext(Dispatchers.Main) {
-                        val fullUrl = webView.URL?.absoluteString?: ("${protocol?.let { "$it://" }}$host${port.let {
-                            when(it){
-                                80L, 443L -> ""
-                                else -> ":$it"
-                            }
-                        }}")
-                        withContext(Dispatchers.IO) {
-                            if(fullUrl.isEmpty()) {
-                                val credential =
-                                    NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                                completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-                            }else{
-                                if(state.webSettings.sslPiningHosts.isNotEmpty()){
-                                    val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                                        it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
-                                    }
-                                    val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)*($str)(/.*)?$".toRegex()
-//                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)*($str)(/.*)?$".toRegex()
-                                    if (pattern.matches(fullUrl)) {
-                                        val credential =
-                                            NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                                        completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-                                    } else {
-                                        KLogger.info {
-                                            "didReceiveAuthenticationChallenge ${fullUrl}"
-                                        }
-                                        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
-                                    }
-                                }else {
-                                    KLogger.info {
-                                        "didReceiveAuthenticationChallenge $fullUrl"
-                                    }
-                                    completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
-                                }
-                            }
-                        }
+            val protocol = didReceiveAuthenticationChallenge.protectionSpace.protocol
+            val host = didReceiveAuthenticationChallenge.protectionSpace.host
+            val port = didReceiveAuthenticationChallenge.protectionSpace.port
+            // 手动拼接 URL
+            val fullUrl = webView.URL?.absoluteString?: ("${protocol?.let { "$it://" }}$host${port.let {
+                when(it){
+                    80L, 443L -> ""
+                    else -> ":$it"
+                }
+            }}")
+            if(fullUrl.isEmpty()) {
+                val credential =
+                    NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
+                completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+            }else{
+                if(state.webSettings.sslPiningHosts.isNotEmpty()){
+                    val str = state.webSettings.sslPiningHosts.joinToString("|") {
+                        it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
                     }
+                    val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)*($str)(/.*)?$".toRegex()
+//                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)*($str)(/.*)?$".toRegex()
+                    if (pattern.matches(fullUrl)) {
+                        val credential =
+                            NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
+                        completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+                    } else {
+                        KLogger.info {
+                            "didReceiveAuthenticationChallenge ${fullUrl}"
+                        }
+                        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
+                    }
+                }else {
+                    KLogger.info {
+                        "didReceiveAuthenticationChallenge $fullUrl"
+                    }
+                    completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
                 }
             }
-
         }else{
-            scope.launch {
-                withContext(Dispatchers.IO) {
-                    val credential =
-                        NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                    completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-                }
-            }
+            val credential =
+                NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
+            completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
         }
     }
 

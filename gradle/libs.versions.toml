@@ -18,6 +18,8 @@ jetpack-compose-bom = "2024.10.01"
 coroutines-bom = "1.9.0"
 kotlinx-atomicfu = "0.25.0"
 appcompat = "1.7.0"
+compose-voyager = "1.1.0-beta03"
+androidx-navigation = "2.8.0-alpha02"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "jetpack-compose-bom" }
@@ -38,7 +40,12 @@ coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing" }
 kotlin-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 
-
+voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "compose-voyager" }
+voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "compose-voyager" }
+voyager-navigator-tab = { module = "cafe.adriel.voyager:voyager-tab-navigator", version.ref = "compose-voyager" }
+voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "compose-voyager" }
+voyager-navigator-bottomsheet = { module = "cafe.adriel.voyager:voyager-bottom-sheet-navigator", version.ref = "compose-voyager" }
+compose-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

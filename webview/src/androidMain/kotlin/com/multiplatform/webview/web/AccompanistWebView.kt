@@ -17,7 +17,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
-import android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -207,7 +206,7 @@ fun AccompanistWebView(
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             safeBrowsingEnabled = it.safeBrowsingEnabled
                         }
-                        mixedContentMode =  WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             isAlgorithmicDarkeningAllowed = it.isAlgorithmicDarkeningAllowed
                         }
@@ -298,9 +297,9 @@ open class AccompanistWebViewClient : WebViewClient() {
         @Suppress("ktlint:standard:max-line-length")
         val script =
             "var meta = document.createElement('meta');" +
-            "meta.setAttribute('name', 'viewport');" +
-            "meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${state.webSettings.zoomLevel}, minimum-scale=${state.webSettings.zoomLevel},user-scalable=$supportZoom');" +
-            "document.getElementsByTagName('head')[0].appendChild(meta);"
+                    "meta.setAttribute('name', 'viewport');" +
+                    "meta.setAttribute('content', 'width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=${state.webSettings.zoomLevel}, minimum-scale=${state.webSettings.zoomLevel},user-scalable=$supportZoom');" +
+                    "document.getElementsByTagName('head')[0].appendChild(meta);"
         navigator.evaluateJavaScript(script)
     }
 
@@ -308,14 +307,14 @@ open class AccompanistWebViewClient : WebViewClient() {
     @SuppressLint("WebViewClientOnReceivedSslError")
     override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
         if (error?.primaryError == SslError.SSL_IDMISMATCH) {
-            val handlerImp = handler?:return kotlin.run {
+            val handlerImp = handler ?: return kotlin.run {
                 try {
                     super.onReceivedSslError(view, handler, error)
                 } catch (ignored: Exception) {
                 }
             }
             val url = error.url
-            if(state.webSettings.sslPiningHosts.isNotEmpty()){
+            if (state.webSettings.sslPiningHosts.isNotEmpty()) {
                 val str = state.webSettings.sslPiningHosts.joinToString("|") {
                     it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
                 }
@@ -325,7 +324,7 @@ open class AccompanistWebViewClient : WebViewClient() {
                 } else {
                     handlerImp.cancel() // 取消不匹配的URL
                 }
-            }else {
+            } else {
                 handlerImp.cancel() // 取消不匹配的URL
             }
         } else {
@@ -344,11 +343,12 @@ open class AccompanistWebViewClient : WebViewClient() {
         description: String?,
         failingUrl: String?
     ) {
-        when{
-            errorCode== ERROR_HOST_LOOKUP && description == "INTERNET_DISCONNECTED"->{
+        when {
+            errorCode == ERROR_HOST_LOOKUP && description == "INTERNET_DISCONNECTED" -> {
                 state.loadingState = LoadingState.ErrorLoading("网络加载失败，请重新检查网络")
             }
-            description == "ADDRESS_UNREACHABLE"->{
+
+            description == "ADDRESS_UNREACHABLE" -> {
                 state.loadingState = LoadingState.ErrorLoading("网络加载失败，请重新检查网络")
             }
         }
@@ -476,6 +476,7 @@ open class AccompanistWebChromeClient : WebChromeClient() {
         this.context = context
 
     }
+
     open lateinit var navigator: WebViewNavigator
         internal set
     open lateinit var state: WebViewState
@@ -525,13 +526,13 @@ open class AccompanistWebChromeClient : WebChromeClient() {
         message: String?,
         result: JsResult?
     ): Boolean {
-        navigator.onJsAlert(message ?:return super.onJsAlert(view, url, message, result)){
+        navigator.onJsAlert(message ?: return super.onJsAlert(view, url, message, result)) {
             result?.confirm()
         }
         return true
     }
 
-    private var fullScreenView: View? = null
+    private var fullScreenView: ViewGroup? = null
     override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
         val v = view ?: return
         val ctx = context as? Activity ?: return
@@ -561,22 +562,22 @@ open class AccompanistWebChromeClient : WebChromeClient() {
         )
         // 此处的 view 就是全屏的视频播放界面，需要把它添加到我们的界面上
         // 设置全屏参数
-        val layoutParams =  WindowManager.LayoutParams();
+        val layoutParams = WindowManager.LayoutParams();
         layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT
         layoutParams.height = WindowManager.LayoutParams.MATCH_PARENT
         layoutParams.gravity = android.view.Gravity.CENTER
         @Suppress("DEPRECATION")
         layoutParams.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_IMMERSIVE or
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR or
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-                View.SYSTEM_UI_FLAG_LOW_PROFILE
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR or
+                    View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+                    View.SYSTEM_UI_FLAG_LOW_PROFILE
 
         layoutParams.type = WindowManager.LayoutParams.TYPE_APPLICATION
         @Suppress("DEPRECATION")
@@ -585,7 +586,8 @@ open class AccompanistWebChromeClient : WebChromeClient() {
                 or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
                 or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            layoutParams.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
         layoutParams.format = android.graphics.PixelFormat.TRANSPARENT
 
@@ -598,19 +600,23 @@ open class AccompanistWebChromeClient : WebChromeClient() {
     }
 
 
-
     override fun onHideCustomView() {
         val f = fullScreenView
         fullScreenView = null
-        val ctx = context as? Activity
-        if (ctx is Activity) {
-            ctx.requestedOrientation =
-                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; // 横屏
-            ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
+        val ctx = context as? Activity ?: return kotlin.run {
+            // 退出全屏播放，我们要把之前添加到界面上的视频播放界面移除
+            windowManager?.removeViewImmediate(f)
+            f?.removeAllViews()
+            state.fullscreenState = false
         }
+        ctx.requestedOrientation =
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; // 横屏
+        ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        ctx.window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
         // 退出全屏播放，我们要把之前添加到界面上的视频播放界面移除
         windowManager?.removeViewImmediate(f)
+        f?.removeAllViews()
         state.fullscreenState = false
     }
+
 }

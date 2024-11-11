@@ -24,7 +24,7 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    jvm("desktop")
+    jvm()
 
     listOf(
         iosX64(),
@@ -52,7 +52,7 @@ kotlin {
 
             implementation(compose.uiUtil)
 
-            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.7.0-alpha07")
+            implementation(libs.compose.navigation)
 
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
@@ -63,16 +63,15 @@ kotlin {
             implementation(libs.coroutines.core)
 
 
-            implementation("cafe.adriel.voyager:voyager-navigator:1.1.0-beta01")
-            implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta01")
-            implementation("cafe.adriel.voyager:voyager-tab-navigator:1.1.0-beta01")
-            implementation("cafe.adriel.voyager:voyager-transitions:1.1.0-beta01")
-            implementation("cafe.adriel.voyager:voyager-bottom-sheet-navigator:1.1.0-beta01")
+            implementation(libs.voyager.navigator)
+            implementation(libs.voyager.screenmodel)
+            implementation(libs.voyager.navigator.tab)
+            implementation(libs.voyager.transitions)
+            implementation(libs.voyager.navigator.bottomsheet)
 
         }
-        val jvmMain = jvmMain.get()
 
-        
+        val jvmMain = jvmMain.get()
         androidMain.get().apply {
             dependsOn(jvmMain)
             dependencies {
@@ -83,7 +82,7 @@ kotlin {
             }
         }
 
-        val desktopMain by getting {
+        val desktopMain by creating {
             dependsOn(jvmMain)
             dependencies {
                 implementation(compose.desktop.common) {
@@ -92,6 +91,10 @@ kotlin {
                 implementation(libs.coroutines.swing)
             }
         }
+
+//        val desktopMain by getting {
+//
+//        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
