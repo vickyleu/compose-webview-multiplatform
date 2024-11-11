@@ -7,9 +7,12 @@ import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatformVersionDouble
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.allocArrayOf
+import kotlinx.cinterop.convert
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.useContents
+import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.CoroutineScope
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
@@ -106,12 +109,11 @@ class IOSWebView(
             NSMutableURLRequest(
                 uRL = NSURL(string = url),
             )
-        request.apply {
-            HTTPMethod = "POST"
-            HTTPBody =
-                memScoped {
-                    NSData.create(bytes = allocArrayOf(postData), length = postData.size.toULong())
-                }
+        val req = request
+        req.HTTPMethod = "POST"
+
+        req.HTTPBody =  postData.usePinned {
+            NSData.create(bytes = it.addressOf(0), length = postData.size.convert())
         }
         webView.loadRequest(request = request)
     }
@@ -193,12 +195,13 @@ class IOSWebView(
         KLogger.info { "injectBridge" }
         val jsConsoleHandler = WKJsConsoleMessageHandler()
         val jsMessageHandler = WKJsMessageHandler(webViewJsBridge)
-        webView.configuration.userContentController.apply {
-            addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
-            addScriptMessageHandler(jsConsoleHandler, "consoleLog")
-            println("注入consoleLog处理器")
-            val logScript = WKUserScript(
-                """(function() {
+
+        val ucc = webView.configuration.userContentController
+        ucc.addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
+        ucc.addScriptMessageHandler(jsConsoleHandler, "consoleLog")
+        println("注入consoleLog处理器")
+        val logScript = WKUserScript(
+            """(function() {
                     var lastTouchEnd = 0;
                     document.documentElement.addEventListener('touchend', function(event) {
                         var now = (new Date()).getTime();
@@ -213,12 +216,12 @@ class IOSWebView(
                     };
                     window.console.log = captureLog;
                 })();""".trimIndent(),
-                WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
-                true
-            )
-            addUserScript(logScript)
-            println("替换console.log方法实现,映射方法到consoleLog")
-        }
+            WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
+            true
+        )
+        ucc.addUserScript(logScript)
+        println("替换console.log方法实现,映射方法到consoleLog")
+
     }
 
     override fun saveState(): WebViewBundle? {
