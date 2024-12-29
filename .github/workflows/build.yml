@@ -22,4 +22,6 @@ jobs:
           java-version: '17'
       - name: Build Multiplatform project
         shell: bash
+        env:
+          GRADLE_OPTS: "-Xmx6G -XX:MaxMetaspaceSize=1024m"
         run: ./gradlew assemble
