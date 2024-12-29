@@ -45,7 +45,7 @@ dependencyResolutionManagement {
         maven { setUrl("https://dl.bintray.com/kotlin/kotlin-dev") }
         maven { setUrl("https://dl.bintray.com/kotlin/kotlin-eap") }
         // workaround for https://youtrack.jetbrains.com/issue/KT-51379
-        exclusiveContent {
+      /*  exclusiveContent {
             forRepository {
                 ivy("https://download.jetbrains.com/kotlin/native/builds") {
                     name = "Kotlin Native"
@@ -73,7 +73,7 @@ dependencyResolutionManagement {
                 }
             }
             filter { includeModuleByRegex(".*", ".*kotlin-native-prebuilt.*") }
-        }
+        }*/
         maven {
             url = uri("https://jitpack.io")
             content {
