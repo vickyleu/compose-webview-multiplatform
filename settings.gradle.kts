@@ -11,9 +11,10 @@ gradle.startParameter.excludedTaskNames.addAll(listOf(
 ))
 
 include(":webview")
-include(":sample:androidApp")
-include(":sample:desktopApp")
-include(":sample:shared")
+include(":composeApp")
+//include(":sample:androidApp")
+//include(":sample:desktopApp")
+//include(":sample:shared")
 
 pluginManagement {
     repositories {
@@ -48,6 +49,7 @@ dependencyResolutionManagement {
             forRepository {
                 ivy("https://download.jetbrains.com/kotlin/native/builds") {
                     name = "Kotlin Native"
+                    url = uri("https://download.jetbrains.com/kotlin/native/builds") // 确保设置的是正确的基础 URL
                     patternLayout {
 
                         // example download URLs:
@@ -68,7 +70,6 @@ dependencyResolutionManagement {
                             }
                         }
                     }
-                    metadataSources { artifact() }
                 }
             }
             filter { includeModuleByRegex(".*", ".*kotlin-native-prebuilt.*") }

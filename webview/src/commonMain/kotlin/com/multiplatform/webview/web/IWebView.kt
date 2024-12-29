@@ -2,7 +2,7 @@ package com.multiplatform.webview.web
 
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.KLogger
-import compose_webview_multiplatform.webview.generated.resources.Res
+import webview.generated.resources.Res
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 

@@ -97,7 +97,7 @@ kotlin {
 
 compose.resources{
     publicResClass = false
-    packageOfResClass="compose_webview_multiplatform.webview.generated.resources"
+    packageOfResClass="webview.generated.resources"
     generateResClass = always
 }
 
@@ -107,7 +107,8 @@ android {
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
-    sourceSets["main"].resources.srcDirs("src/commonMain/resources")
+//    sourceSets["main"].resources.srcDirs("src/commonMain/resources")
+//    sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

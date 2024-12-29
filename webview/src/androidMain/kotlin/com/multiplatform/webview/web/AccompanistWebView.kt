@@ -178,6 +178,7 @@ fun AccompanistWebView(
     AndroidView(
         factory = { context ->
             (factory?.invoke(context) ?: WebView(context)).apply {
+                val webViewInstance = this
                 WebView.setWebContentsDebuggingEnabled(state.webSettings.isInspectable)
 
                 onCreated(this)
@@ -218,8 +219,11 @@ fun AccompanistWebView(
                             setInitialScale(1)
                             loadWithOverviewMode = true
                             this.layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
+                            println("useWideViewPort is true")
+                        }else{
+                            // 页面还可以左右滑动,TODO 需要设置内部的页面不可左右滑动
+                            loadWithOverviewMode = false
                         }
-
                         standardFontFamily = it.standardFontFamily
                         defaultFontSize = it.defaultFontSize
                         loadsImagesAutomatically = it.loadsImagesAutomatically
