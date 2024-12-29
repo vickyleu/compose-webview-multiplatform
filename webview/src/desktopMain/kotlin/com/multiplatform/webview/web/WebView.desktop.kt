@@ -4,13 +4,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
-import compose_webview_multiplatform.webview.generated.resources.Res
 import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import dev.datlag.kcef.KCEFClient
 import org.cef.browser.CefRendering
 import org.cef.browser.CefRequestContext
 import org.jetbrains.compose.resources.ExperimentalResourceApi
+import webview.generated.resources.Res
 
 /**
  * Desktop WebView implementation.
