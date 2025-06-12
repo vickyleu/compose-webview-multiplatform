@@ -42,6 +42,7 @@ kotlin{
             implementation(compose.uiUtil)
 
             implementation(libs.compose.navigation)
+            implementation(libs.material.icons.core)
 
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)

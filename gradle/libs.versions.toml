@@ -9,10 +9,11 @@ kcef = "2024.01.07.1"
 kermit = "2.0.4"
 kotlin = "2.1.21"
 jvmTarget = "17"
-compose-plugin = "1.7.3"
-dokka = "1.9.20"
+compose-plugin = "1.8.1"
+dokka = "2.0.0"
 ktlint = "12.1.1"
 kotlinxSerializationJson = "1.8.1"
+materialIconsCore = "1.7.3"
 webkit = "1.14.0"
 jetpack-compose-bom = "2025.06.00"
 coroutines-bom = "1.10.2"
@@ -38,6 +39,7 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core" }
 coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing" }
 
 kotlin-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "materialIconsCore" }
 webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "compose-voyager" }

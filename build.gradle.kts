@@ -65,10 +65,12 @@ subprojects {
             eachDependency {
                 if (requested.group == "org.jetbrains.kotlin") {
                     useVersion(libs.versions.kotlin.get())
-                } else if (requested.group.startsWith("org.jetbrains.compose.")
-                    && !requested.group.endsWith(".compiler")
-                ) {
-                    useVersion(libs.versions.compose.plugin.get())
+                }else if (requested.group.startsWith("org.jetbrains.compose")) {
+                    if(requested.name.startsWith("material-icons-")){
+                        useVersion("1.7.3")
+                    }else{
+                        useVersion(libs.versions.compose.plugin.get())
+                    }
                 } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
 //                    useVersion(libs.versions.annotations.get()) //TODO
                 }
