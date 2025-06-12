@@ -104,10 +104,10 @@ tasks.register("deletePackages") {
 
     var versionCount:Int? = null
 
-    if(false){//用于保留某些版本
-        val map = mapOf("1.0.2" to 1,"1.0.3" to 2)
-        versionCount=map["1.0.2"]
-    }
+//    if(false){//用于保留某些版本
+        val map2 = mapOf("1.0.2" to 1)
+        versionCount=map2["1.0.2"]
+//    }
 
 
     group = "publishing"

@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -15,10 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -105,7 +105,7 @@ internal fun InterceptRequestSample(navHostController: NavHostController? = null
                         }
                     }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                         )
                     }
@@ -116,7 +116,7 @@ internal fun InterceptRequestSample(navHostController: NavHostController? = null
             Text(
                 text =
                     "This sample demonstrates how to intercept requests in WebView. " +
-                        "When the URL contains 'kotlin', the request will be redirected to 'https://kotlinlang.org/docs/multiplatform.html'.",
+                            "When the URL contains 'kotlin', the request will be redirected to 'https://kotlinlang.org/docs/multiplatform.html'.",
                 modifier = Modifier.padding(8.dp),
             )
 
@@ -156,7 +156,7 @@ internal fun InterceptRequestSample(navHostController: NavHostController? = null
             val loadingState = state.loadingState
             if (loadingState is LoadingState.Loading) {
                 LinearProgressIndicator(
-                    progress = loadingState.progress,
+                    progress = { loadingState.progress },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

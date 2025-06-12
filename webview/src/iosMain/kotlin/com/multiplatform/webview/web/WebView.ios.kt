@@ -194,6 +194,7 @@ fun IOSWebView(
                         val iosWebView = IOSWebView(it, scope, webViewJsBridge)
                         state.webView = iosWebView
                         webViewJsBridge?.webView = iosWebView
+                        it.backgroundColor = Color.Transparent.toUIColor()
                     }
                 },
                 modifier = modifier,
