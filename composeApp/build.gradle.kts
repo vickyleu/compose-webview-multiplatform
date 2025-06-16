@@ -53,11 +53,7 @@ kotlin{
             implementation(libs.coroutines.core)
 
 
-            implementation(libs.voyager.navigator)
-            implementation(libs.voyager.screenmodel)
-            implementation(libs.voyager.navigator.tab)
-            implementation(libs.voyager.transitions)
-            implementation(libs.voyager.navigator.bottomsheet)
+            implementation(libs.compose.backhandler)
 
         }
 

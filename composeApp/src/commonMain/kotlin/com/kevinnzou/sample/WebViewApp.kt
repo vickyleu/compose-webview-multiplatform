@@ -45,7 +45,7 @@ internal fun WebViewApp() {
             BasicWebViewWithHTMLSample(controller)
         }
         composable("tab") {
-            VoyagerNavigationSample(controller)
+            NavigationSample(controller)
         }
         composable("intercept") {
             InterceptRequestSample(controller)
