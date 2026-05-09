@@ -1,244 +1,150 @@
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.Properties
-import java.util.concurrent.Executors
+import com.vanniktech.maven.publish.DeploymentValidation
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import org.gradle.plugins.signing.Sign
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-//需要判断是否是jitpack的构建，如果是jitpack的构建，需要将build目录设置到项目根目录下
 if (System.getenv("JITPACK") == null) {
     rootProject.layout.buildDirectory.set(file("./build"))
 }
 
 plugins {
-    // this is necessary to avoid the plugins to be loaded multiple times
-    // in each subproject's classloader
-
-
-    /*id(libs.plugins.kotlin.multiplatform.get().pluginId).apply(false) //
-    id(libs.plugins.kotlin.parcelize.get().pluginId).apply(false)
-    id(libs.plugins.android.application.get().pluginId).apply(false)
-    id(libs.plugins.android.library.get().pluginId).apply(false)*/
-
-
-    alias(libs.plugins.kotlin.multiplatform).apply(false) //
+    alias(libs.plugins.kotlin.multiplatform).apply(false)
     alias(libs.plugins.kotlin.parcelize).apply(false)
     alias(libs.plugins.android.application).apply(false)
     alias(libs.plugins.android.library).apply(false)
-
-
     alias(libs.plugins.jetbrains.compose).apply(false)
     alias(libs.plugins.compose.compiler).apply(false)
-    alias(libs.plugins.dokka)
-    alias(libs.plugins.ktlint)
-    alias(libs.plugins.kotlinx.atomicfu)
-
+    alias(libs.plugins.dokka).apply(false)
+    alias(libs.plugins.ktlint).apply(false)
+    alias(libs.plugins.kotlinx.atomicfu).apply(false)
+    alias(libs.plugins.kotlin.serialization).apply(false)
+    alias(libs.plugins.vanniktech.maven.publish).apply(false)
 }
+
 val javaVersion = JavaVersion.toVersion(libs.versions.jvmTarget.get())
 check(JavaVersion.current().isCompatibleWith(javaVersion)) {
     "This project needs to be run with Java ${javaVersion.getMajorVersion()} or higher (found: ${JavaVersion.current()})."
 }
 
+val publishGroup = "io.github.vickyleu.webview"
+val publishVersion = "2.0.0"
+val publishRepo = "compose-webview-multiplatform"
+val publishUrl = "https://github.com/vickyleu/$publishRepo"
+
 allprojects {
-    tasks.register("testClasses")
+    if (tasks.findByName("testClasses") == null) {
+        tasks.register("testClasses")
+    }
+
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xexpect-actual-classes")
+        }
+    }
 }
 
 subprojects {
     if (System.getenv("JITPACK") == null) {
-        this.layout.buildDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/${project.name}"))
+        layout.buildDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/${project.name}"))
     }
-    afterEvaluate {
-        apply(plugin = libs.plugins.ktlint.get().pluginId) // Version should be inherited from parent
-        // Optionally configure plugin
-//        configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-//            version.set("1.0.1")
-//        }
-    }
+
     configurations.all {
-//        exclude(group = "org.jetbrains.compose.material", module = "material")
         resolutionStrategy {
             eachDependency {
                 if (requested.group == "org.jetbrains.kotlin") {
                     useVersion(libs.versions.kotlin.get())
-                }else if (requested.group.startsWith("org.jetbrains.compose")) {
-                    if(requested.name.startsWith("material-icons-")){
-                        useVersion("1.7.3")
-                    }else{
-                        useVersion(libs.versions.compose.plugin.get())
-                    }
+                } else if (requested.group.startsWith("org.jetbrains.compose")) {
+                    useVersion(libs.versions.compose.plugin.get())
                 } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
-//                    useVersion(libs.versions.annotations.get()) //TODO
+                    useVersion(libs.versions.annotations.get())
                 }
             }
         }
     }
-}
 
+    afterEvaluate {
+        apply(plugin = libs.plugins.ktlint.get().pluginId)
+    }
 
+    if (name != "webview") return@subprojects
 
-tasks.register("deletePackages") {
+    apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = "com.vanniktech.maven.publish")
 
-    val libs = rootDir.resolve("gradle/libs.versions.toml")
-    val map = hashMapOf<String, String>()
-    libs.useLines {
-        it.forEach { line ->
-            if (line.contains("=") && line.startsWith("#").not()) {
-                val (key, value) = line.split("=")
-                map[key
-                    .replace(" ", "").removeSurrounding("\"")] =
-                    value
-                        .replace(" ", "").removeSurrounding("\"")
-            }
+    extensions.configure<org.jetbrains.dokka.gradle.DokkaExtension>("dokka") {
+        moduleName.set("webview")
+        dokkaPublications.named("html") {
+            offlineMode.set(false)
+            moduleName.set("webview")
+        }
+        dokkaSourceSets.configureEach {
+            reportUndocumented.set(false)
+            enableAndroidDocumentationLink.set(true)
+            enableKotlinStdLibDocumentationLink.set(true)
+            enableJdkDocumentationLink.set(true)
+            jdkVersion.set(libs.versions.jvmTarget.get().toInt())
         }
     }
 
-    val rootProjectName = rootDir.name
-        .replace("compose-", "")
-        .replace("-multiplatform", "")
+    extensions.configure<MavenPublishBaseExtension>("mavenPublishing") {
+        coordinates(publishGroup, "webview", publishVersion)
+        publishToMavenCentral(
+            automaticRelease = true,
+            validateDeployment = DeploymentValidation.PUBLISHED,
+        )
+        signAllPublications()
 
-    val mavenAuthor = "vickyleu"
-    val mavenGroup = "com.$mavenAuthor.$rootProjectName"
-
-    var versionCount:Int? = null
-
-//    if(false){//用于保留某些版本
-        val map2 = mapOf("1.0.2" to 1)
-        versionCount=map2["1.0.2"]
-//    }
-
-
-    group = "publishing"
-    description = "Delete all packages in the GitHub Packages registry"
-
-
-    val keyword = "${mavenGroup}"
-    println("keyword: $keyword")
-    val properties = Properties().apply {
-        runCatching { rootProject.file("local.properties") }
-            .getOrNull()
-            .takeIf { it?.exists() ?: false }
-            ?.reader()
-            ?.use(::load)
-    }
-// For information about signing.* properties,
-// see comments on signing { ... } block below
-    val environment: Map<String, String?> = System.getenv()
-    val myExtra = mutableMapOf<String, Any>()
-    myExtra["githubToken"] = properties["github.token"] as? String
-        ?: environment["GITHUB_TOKEN"] ?: ""
-    val headers = mapOf(
-        "Accept" to "application/vnd.github.v3+json",
-        "Authorization" to "Bearer ${myExtra["githubToken"]}",
-        "X-GitHub-Api-Version" to "2022-11-28"
-    )
-    // 如何指定一个版本,比如有1.0.2和1.0.3两个版本，如何指定删除1.0.2版本
-    doLast {
-        runBlocking {
-            val executor = Executors.newFixedThreadPool(10)
-            val scope = CoroutineScope(executor.asCoroutineDispatcher())
-            val fetchJobs = packageTypes.flatMap { packageType ->
-                visibilityTypes.map { visibility ->
-                    scope.async {
-                        fetchPackages(packageType, visibility, headers)
-                    }
+        pom {
+            name.set("Vickyleu KMP WebView")
+            description.set("A Compose Multiplatform WebView library for Android, iOS, and desktop.")
+            inceptionYear.set("2024")
+            url.set(publishUrl)
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    distribution.set("repo")
                 }
             }
-            fetchJobs.awaitAll().forEach { packages ->
-                allPackages.addAll(packages)
-            }
-
-            val deleteJobs = allPackages.filter { pkg ->
-                val packageName = pkg["name"] as String
-                packageName.contains(keyword) && if(versionCount!=null){
-                    pkg["version_count"].toString().toInt() == versionCount
-                }else true
-            }.map { pkg ->
-                val packageType = pkg["package_type"] as String
-                val packageName = pkg["name"] as String
-                scope.async {
-                    deletePackage(packageType, packageName, headers)
+            developers {
+                developer {
+                    id.set("vickyleu")
+                    name.set("Vickyleu")
+                    url.set("https://github.com/vickyleu")
                 }
             }
-            try {
-                deleteJobs.awaitAll()
-                executor.shutdown()
-            } catch (e: Exception) {
-                println("删除包失败: ${e.message}")
+            scm {
+                url.set(publishUrl)
+                connection.set("scm:git:https://github.com/vickyleu/$publishRepo.git")
+                developerConnection.set("scm:git:ssh://git@github.com/vickyleu/$publishRepo.git")
+            }
+            issueManagement {
+                system.set("GitHub")
+                url.set("$publishUrl/issues")
+            }
+            ciManagement {
+                system.set("GitHub Actions")
+                url.set("$publishUrl/actions")
             }
         }
     }
-}
 
-
-val packageTypes = listOf("npm", "maven", "docker", "container")
-val visibilityTypes = listOf("public", "private", "internal")
-val allPackages = mutableListOf<Map<String, Any>>()
-
-fun fetchPackages(packageType: String, visibility: String, headers: Map<String, String>): List<Map<String, Any>> {
-    val packages = mutableListOf<Map<String, Any>>()
-    var page = 1
-
-    while (true) {
-        val url =
-            URL("https://api.github.com/user/packages?package_type=$packageType&visibility=$visibility&page=$page&per_page=100")
-        val connection = url.openConnection() as HttpURLConnection
-
-        headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
-
-        if (connection.responseCode == 200) {
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            val batch: List<Map<String, Any>> = jacksonObjectMapper().readValue(response)
-            if (batch.isEmpty()) break
-            packages.addAll(batch)
-            page++
-        } else {
-            println("获取$packageType ($visibility) 包列表失败，错误代码: ${connection.responseCode} ${connection.responseMessage}")
-            println(connection.inputStream.bufferedReader().use { it.readText() })
-            break
+    tasks.withType<Sign>().configureEach {
+        onlyIf {
+            val signingKeyRingFile = providers.gradleProperty("signing.secretKeyRingFile").orNull
+            val hasSigningKey =
+                !providers.gradleProperty("signingInMemoryKey").orNull.isNullOrBlank() ||
+                    (!signingKeyRingFile.isNullOrBlank() && file(signingKeyRingFile).isFile)
+            val publishingToCentral = gradle.taskGraph.allTasks.any { task ->
+                task.name.contains("MavenCentral")
+            }
+            hasSigningKey || publishingToCentral
         }
     }
-
-    return packages
 }
-
-fun deletePackage(packageType: String, packageName: String, headers: Map<String, String>) {
-    val url = URL("https://api.github.com/user/packages/$packageType/$packageName")
-    val connection = url.openConnection() as HttpURLConnection
-    connection.requestMethod = "DELETE"
-    headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
-
-    if (connection.responseCode == 204 || connection.responseCode == 200) {
-        println("$packageName 删除成功")
-    } else {
-        println("$packageName 删除失败，错误代码: ${connection.responseCode}")
-        println(connection.inputStream.bufferedReader().use { it.readText() })
-    }
-}
-
-
 
 tasks.register<Copy>("setUpGitHooks") {
     group = "help"
     from("$rootDir/.hooks")
     into("$rootDir/.git/hooks")
 }
-
-//tasks {
-//    task<Delete>("clean") {
-//        delete(rootProject.layout.buildDirectory.get().asFile)
-//        delete(rootDir.resolve("**/.idea"))
-//        delete(rootDir.resolve("**/.gradle"))
-//        delete(rootDir.resolve("**/.kotlin"))
-//        project(":sample").projectDir.apply {
-//            delete(resolve("iosApp/iosApp.xcworkspace"))
-//            delete(resolve("iosApp/Pods"))
-//            delete(resolve("iosApp/iosApp.xcodeproj/project.xcworkspace"))
-//            delete(resolve("iosApp/iosApp.xcodeproj/xcuserdata"))
-//        }
-//    }
-//}

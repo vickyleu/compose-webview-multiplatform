@@ -8,6 +8,11 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
 }
 
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvmTarget.get()))
+    }
+}
 
 configurations.all {
     resolutionStrategy {

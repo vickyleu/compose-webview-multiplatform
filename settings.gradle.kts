@@ -1,7 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-import java.util.Properties
-
 
 rootProject.name = "compose-webview-multiplatform"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
@@ -18,7 +16,10 @@ include(":composeApp")
 
 pluginManagement {
     repositories {
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/gradle-plugin")
         mavenCentral()
+        maven("https://maven.aliyun.com/repository/public")
         gradlePluginPortal()
         google {
             content {
@@ -34,7 +35,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
+        maven("https://maven.aliyun.com/repository/google")
         mavenCentral()
+        maven("https://maven.aliyun.com/repository/public")
         google {
             content {
                 includeGroupByRegex(".*google.*")
@@ -87,24 +90,5 @@ dependencyResolutionManagement {
         }
 
 
-        val properties = Properties().apply {
-            runCatching { rootProject.projectDir.resolve("local.properties") }
-                .getOrNull()
-                .takeIf { it?.exists() ?: false }
-                ?.reader()
-                ?.use(::load)
-        }
-        val environment: Map<String, String?> = System.getenv()
-        extra["githubToken"] = properties["github.token"] as? String
-            ?: environment["GITHUB_TOKEN"] ?: ""
-
-        maven {
-            url = uri("https://maven.pkg.github.com/vickyleu/${rootProject.name}")
-            credentials {
-                username = "vickyleu"
-                password = extra["githubToken"]?.toString()
-            }
-        }
     }
 }
-
