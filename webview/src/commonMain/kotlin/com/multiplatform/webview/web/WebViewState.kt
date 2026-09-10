@@ -17,109 +17,63 @@ import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatform
 import com.multiplatform.webview.util.isZero
 
-/**
- * Created By Kevin Zou On 2023/9/5
- */
-
-/**
- * A state holder to hold the state for the WebView. In most cases this will be remembered
- * using the rememberWebViewState(uri) function.
- */
-class WebViewState(webContent: WebContent) {
-    /**
-     * The last loaded url. This is updated when a new page is loaded.
-     */
+/** A state holder for the WebView. */
+class WebViewState(
+    webContent: WebContent,
+) {
     var lastLoadedUrl: String? by mutableStateOf(null)
         internal set
 
-    /**
-     *  The content being loaded by the WebView
-     */
     var content: WebContent by mutableStateOf(webContent)
 
-    /**
-     * Whether the WebView is currently [LoadingState.Loading] data in its main frame (along with
-     * progress) or the data loading has [LoadingState.Finished]. See [LoadingState]
-     */
     var loadingState: LoadingState by mutableStateOf(LoadingState.Initializing)
         internal set
 
-
-    /**
-     * Whether the webview is currently loading data in its main frame
-     */
     val isLoading: Boolean
         get() = loadingState !is LoadingState.Finished
+
+    /** Fork-specific fullscreen state retained for source/behavior compatibility. */
     var fullscreenState by mutableStateOf(false)
         internal set
 
     val isFullScreen: Boolean
         get() = fullscreenState
 
-    /**
-     * The title received from the loaded content of the current page
-     */
     var pageTitle: String? by mutableStateOf(null)
         internal set
 
-    /**
-     * A list for errors captured in the last load. Reset when a new page is loaded.
-     * Errors could be from any resource (iframe, image, etc.), not just for the main page.
-     * For more fine grained control use the OnError callback of the WebView.
-     */
+    /** Errors captured in the current page load, including subresources. */
     val errorsForCurrentRequest: SnapshotStateList<WebViewError> = mutableStateListOf()
 
-    /**
-     * Custom Settings for WebView.
-     */
     val webSettings: WebSettings by mutableStateOf(WebSettings())
 
-    /**
-     * Whether the WebView should capture back presses and navigate back.
-     * We need access to this in the state saver. An internal DisposableEffect or AndroidView
-     * onDestroy is called after the state saver and so can't be used.
-     */
     internal var webView by mutableStateOf<IWebView?>(null)
 
-    /**
-     * The native web view instance. On Android, this is an instance of [android.webkit.WebView].
-     * On iOS, this is an instance of [WKWebView]. On desktop, this is an instance of [KCEFBrowser].
-     */
     val nativeWebView get() = webView?.webView ?: error("WebView is not initialized")
 
-    /**
-     * The saved view state from when the view was destroyed last. To restore state,
-     * use the navigator and only call loadUrl if the bundle is null.
-     * See WebViewSaveStateSample.
-     */
     var viewState: WebViewBundle? = null
         internal set
 
     var scrollOffset: Pair<Int, Int> = 0 to 0
         internal set
 
-    /**
-     * CookieManager for WebView.
-     * Exposes access to the cookie manager for webView
-     */
     val cookieManager: CookieManager by mutableStateOf(WebViewCookieManager())
 }
 
 /**
- * Creates a WebView state that is remembered across Compositions.
+ * Creates a remembered WebView state.
  *
- * @param url The url to load in the WebView
- * @param additionalHttpHeaders Optional, additional HTTP headers that are passed to [AccompanistWebView.loadUrl].
- *                              Note that these headers are used for all subsequent requests of the WebView.
+ * [callback] intentionally remains the last lambda to preserve the fork's historic trailing-lambda
+ * source compatibility. Upstream-style settings are available through the named [extraSettings]
+ * parameter or [rememberWebViewStateWithSettings].
  */
 @Composable
 fun rememberWebViewState(
     url: String,
     additionalHttpHeaders: Map<String, String> = emptyMap(),
-    callback: (WebViewState) -> Unit = {}
+    extraSettings: WebSettings.() -> Unit = {},
+    callback: (WebViewState) -> Unit = {},
 ): WebViewState =
-// Rather than using .apply {} here we will recreate the state, this prevents
-    // a recomposition loop when the webview updates the url itself.
     remember {
         WebViewState(
             WebContent.Url(
@@ -128,24 +82,24 @@ fun rememberWebViewState(
             ),
         )
     }.apply {
-        this.content =
-            WebContent.Url(
-                url = url,
-                additionalHttpHeaders = additionalHttpHeaders,
-            )
-
+        content = WebContent.Url(url = url, additionalHttpHeaders = additionalHttpHeaders)
+        extraSettings(webSettings)
         callback(this)
     }
 
-/**
- * Creates a WebView state that is remembered across Compositions and saved
- * across activity recreation.
- * When using saved state, you cannot change the URL via recomposition. The only way to load
- * a URL is via a WebViewNavigator.
- *
- * @param data The uri to load in the WebView
- * @sample com.google.accompanist.sample.webview.WebViewSaveStateSample
- */
+/** Ergonomic upstream-style settings helper without changing the fork's trailing callback semantics. */
+@Composable
+fun rememberWebViewStateWithSettings(
+    url: String,
+    additionalHttpHeaders: Map<String, String> = emptyMap(),
+    extraSettings: WebSettings.() -> Unit,
+): WebViewState =
+    rememberWebViewState(
+        url = url,
+        additionalHttpHeaders = additionalHttpHeaders,
+        extraSettings = extraSettings,
+    )
+
 @Composable
 fun rememberSaveableWebViewState(
     url: String,
@@ -179,18 +133,17 @@ val WebStateSaver: Saver<WebViewState, Any> =
                     scrollOffsetKey to it.webView?.scrollOffset(),
                 )
             },
-
             restore = {
                 KLogger.info {
-                    "WebViewStateSaver Restore: ${it[pageTitleKey]}, ${it[lastLoadedUrlKey]}, ${it["scrollOffset"]}, ${it[stateBundleKey]}"
+                    "WebViewStateSaver Restore: ${it[pageTitleKey]}, ${it[lastLoadedUrlKey]}, ${it[scrollOffsetKey]}, ${it[stateBundleKey]}"
                 }
                 @Suppress("UNCHECKED_CAST")
                 val scrollOffset = it[scrollOffsetKey] as Pair<Int, Int>? ?: (0 to 0)
                 val bundle = it[stateBundleKey] as WebViewBundle?
                 WebViewState(WebContent.NavigatorOnly).apply {
-                    this.pageTitle = it[pageTitleKey] as String?
-                    this.lastLoadedUrl = it[lastLoadedUrlKey] as String?
-                    bundle?.let { this.viewState = it }
+                    pageTitle = it[pageTitleKey] as String?
+                    lastLoadedUrl = it[lastLoadedUrlKey] as String?
+                    bundle?.let { saved -> viewState = saved }
                     if (!scrollOffset.isZero()) {
                         this.scrollOffset = scrollOffset
                     }
@@ -199,15 +152,6 @@ val WebStateSaver: Saver<WebViewState, Any> =
         )
     }
 
-/**
- * Creates a WebView state that is remembered across Compositions.
- *
- * @param data The uri to load in the WebView
- * @param baseUrl The URL to use as the page's base URL.
- * @param encoding The encoding of the data in the string.
- * @param mimeType The MIME type of the data in the string.
- * @param historyUrl The history URL for the loaded HTML. Leave null to use about:blank.
- */
 @Composable
 fun rememberWebViewStateWithHTMLData(
     data: String,
@@ -216,35 +160,51 @@ fun rememberWebViewStateWithHTMLData(
     mimeType: String? = null,
     historyUrl: String? = null,
     additionalHttpHeaders: Map<String, String> = emptyMap(),
-    callback: (WebViewState) -> Unit = {}
+    extraSettings: WebSettings.() -> Unit = {},
+    callback: (WebViewState) -> Unit = {},
 ): WebViewState =
     remember {
         WebViewState(
             WebContent.Data(
-                data, baseUrl, encoding, mimeType, historyUrl,
-                additionalHttpHeaders = additionalHttpHeaders,
-            )
+                data,
+                baseUrl,
+                encoding,
+                mimeType,
+                historyUrl,
+                additionalHttpHeaders,
+            ),
         )
     }.apply {
-        this.content =
+        content =
             WebContent.Data(
-                data, baseUrl, encoding, mimeType, historyUrl,
-                additionalHttpHeaders = additionalHttpHeaders,
+                data,
+                baseUrl,
+                encoding,
+                mimeType,
+                historyUrl,
+                additionalHttpHeaders,
             )
+        extraSettings(webSettings)
         callback(this)
     }
 
 /**
- * Creates a WebView state for HTML file loading that is remembered across Compositions.
- *
- * @param fileName The file to load in the WebView
- * Please note that the file should be placed in the commonMain/resources/assets folder.
- * The fileName just need to be the relative path to the assets folder.
+ * Creates a remembered state for an HTML file.
+ * [readType] brings in upstream Asset/Compose Resource support while its default preserves the
+ * historic one-argument fork API.
  */
 @Composable
-fun rememberWebViewStateWithHTMLFile(fileName: String): WebViewState =
+fun rememberWebViewStateWithHTMLFile(
+    fileName: String,
+    readType: WebViewFileReadType = WebViewFileReadType.ASSET_RESOURCES,
+    additionalHttpHeaders: Map<String, String> = emptyMap(),
+    extraSettings: WebSettings.() -> Unit = {},
+    callback: (WebViewState) -> Unit = {},
+): WebViewState =
     remember {
-        WebViewState(WebContent.File(fileName))
+        WebViewState(WebContent.File(fileName, readType, additionalHttpHeaders))
     }.apply {
-        this.content = WebContent.File(fileName)
+        content = WebContent.File(fileName, readType, additionalHttpHeaders)
+        extraSettings(webSettings)
+        callback(this)
     }
