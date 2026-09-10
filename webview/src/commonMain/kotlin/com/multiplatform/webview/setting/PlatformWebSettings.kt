@@ -1,177 +1,31 @@
 package com.multiplatform.webview.setting
 
 import androidx.compose.ui.graphics.Color
-import com.multiplatform.webview.setting.PlatformWebSettings.AndroidWebSettings.LayerType
 
-/**
- * Created By Kevin Zou On 2023/9/20
- */
 sealed class PlatformWebSettings {
-    /**
-     * Android web settings
-     */
     data class AndroidWebSettings(
-        /**
-         * Enables or disables file access within WebView.
-         * Note that this enables or disables file system access only. Assets and resources
-         * are still accessible using file:///android_asset and file:///android_res.
-         * <p class="note">
-         * <b>Note:</b> Apps should not open {@code file://} URLs from any external source in
-         * WebView, don't enable this if your app accepts arbitrary URLs from external sources.
-         * It's recommended to always use
-         * <a href="{@docRoot}reference/androidx/webkit/WebViewAssetLoader">
-         * androidx.webkit.WebViewAssetLoader</a> to access files including assets and resources over
-         * {@code http(s)://} schemes, instead of {@code file://} URLs. To prevent possible security
-         * issues targeting {@link android.os.Build.VERSION_CODES#Q} and earlier, you should explicitly
-         * set this value to {@code false}.
-         * <p>
-         * The default value is {@code true} for apps targeting
-         * {@link android.os.Build.VERSION_CODES#Q} and below, and {@code false} when targeting
-         * {@link android.os.Build.VERSION_CODES#R} and above.
-         */
         var allowFileAccess: Boolean = false,
-        /**
-         * The text zoom of the page in percent. The default is 100.
-         *
-         * @param textZoom the text zoom in percent
-         */
         var textZoom: Int = 100,
-        /**
-         * Whether the WebView should enable support for the &quot;viewport&quot;
-         * HTML meta tag or should use a wide viewport.
-         * When the value of the setting is {@code false}, the layout width is always set to the
-         * width of the WebView control in device-independent (CSS) pixels.
-         * When the value is {@code true} and the page contains the viewport meta tag, the value
-         * of the width specified in the tag is used. If the page does not contain the tag or
-         * does not provide a width, then a wide viewport will be used.
-         *
-         */
         var useWideViewPort: Boolean = false,
-        /**
-         * The standard font family name. The default is "sans-serif".
-         *
-         * @param font a font family name
-         */
         var standardFontFamily: String = "sans-serif",
-        /**
-         * The default font size. The default is 16.
-         *
-         * @param size a non-negative integer between 1 and 72. Any number outside
-         *             the specified range will be pinned.
-         */
         var defaultFontSize: Int = 16,
-        /**
-         * Sets whether the WebView should load image resources. Note that this method
-         * controls loading of all images, including those embedded using the data
-         * URI scheme. Use {@link #setBlockNetworkImage} to control loading only
-         * of images specified using network URI schemes. Note that if the value of this
-         * setting is changed from {@code false} to {@code true}, all images resources referenced
-         * by content currently displayed by the WebView are loaded automatically.
-         * The default is {@code true}.
-         *
-         * @param flag whether the WebView should load image resources
-         */
         var loadsImagesAutomatically: Boolean = true,
-        /**
-         * Control whether algorithmic darkening is allowed.
-         *
-         * <p class="note">
-         * <b>Note:</b> This API and the behaviour described only apply to apps with
-         * {@code targetSdkVersion} &ge; {@link android.os.Build.VERSION_CODES#TIRAMISU}.
-         *
-         * <p>
-         * WebView always sets the media query {@code prefers-color-scheme} according to the app's
-         * theme attribute {@link android.R.styleable#Theme_isLightTheme isLightTheme}, i.e.
-         * {@code prefers-color-scheme} is {@code light} if isLightTheme is true or not specified,
-         * otherwise it is {@code dark}. This means that the web content's light or dark style will
-         * be applied automatically to match the app's theme if the content supports it.
-         *
-         * <p>
-         * Algorithmic darkening is disallowed by default.
-         * <p>
-         * If the app's theme is dark and it allows algorithmic darkening, WebView will attempt to
-         * darken web content using an algorithm, if the content doesn't define its own dark styles
-         * and doesn't explicitly disable darkening.
-         *
-         * <p>
-         * If Android is applying Force Dark to WebView then WebView will ignore the value of
-         * this setting and behave as if it were set to true.
-         *
-         * <p>
-         * The deprecated {@link #setForceDark} and related API are no-ops in apps with
-         * {@code targetSdkVersion} &ge; {@link android.os.Build.VERSION_CODES#TIRAMISU},
-         * but they still apply to apps with
-         * {@code targetSdkVersion} &lt; {@link android.os.Build.VERSION_CODES#TIRAMISU}.
-         *
-         * <p>
-         * The below table summarizes how APIs work with different apps.
-         *
-         * <table border="2" width="85%" align="center" cellpadding="5">
-         *     <thead>
-         *         <tr>
-         *             <th>App</th>
-         *             <th>Web content which uses {@code prefers-color-scheme}</th>
-         *             <th>Web content which does not use {@code prefers-color-scheme}</th>
-         *         </tr>
-         *     </thead>
-         *     <tbody>
-         *     <tr>
-         *         <td>App with {@code isLightTheme} True or not set</td>
-         *         <td>Renders with the light theme defined by the content author.</td>
-         *         <td>Renders with the default styling defined by the content author.</td>
-         *     </tr>
-         *     <tr>
-         *         <td>App with Android forceDark in effect</td>
-         *         <td>Renders with the dark theme defined by the content author.</td>
-         *         <td>Renders with the styling modified to dark colors by an algorithm
-         *             if allowed by the content author.</td>
-         *     </tr>
-         *     <tr>
-         *         <td>App with {@code isLightTheme} False,
-         *            {@code targetSdkVersion} &lt; {@link android.os.Build.VERSION_CODES#TIRAMISU},
-         *             and has {@code FORCE_DARK_AUTO}</td>
-         *         <td>Renders with the dark theme defined by the content author.</td>
-         *         <td>Renders with the default styling defined by the content author.</td>
-         *     </tr>
-         *     <tr>
-         *         <td>App with {@code isLightTheme} False,
-         *            {@code targetSdkVersion} &ge; {@link android.os.Build.VERSION_CODES#TIRAMISU},
-         *             and {@code setAlgorithmicDarkening(false)}</td>
-         *         <td>Renders with the dark theme defined by the content author.</td>
-         *         <td>Renders with the default styling defined by the content author.</td>
-         *     </tr>
-         *     <tr>
-         *         <td>App with {@code isLightTheme} False,
-         *            {@code targetSdkVersion} &ge; {@link android.os.Build.VERSION_CODES#TIRAMISU},
-         *             and {@code setAlgorithmicDarkening(true)}</td>
-         *         <td>Renders with the dark theme defined by the content author.</td>
-         *         <td>Renders with the styling modified to dark colors by an algorithm if allowed
-         *             by the content author.</td>
-         *     </tr>
-         *     </tbody>
-         * </table>
-         * </p>
-         *
-         */
         var isAlgorithmicDarkeningAllowed: Boolean = false,
-        /**
-         * whether Safe Browsing is enabled. Safe Browsing allows WebView to
-         * protect against malware and phishing attacks by verifying the links.
-         */
         var safeBrowsingEnabled: Boolean = true,
-        /**
-         * Whether the DOM storage API is enabled. The default value is {@code false}.
-         */
         var domStorageEnabled: Boolean = false,
-        /**
-         * Whether the a user gesture is required to play media. The default is {@code true}.
-         */
         var mediaPlaybackRequiresUserGesture: Boolean = true,
-        /**
-         * The Layer Type of the WebView.
-         * Default is [LayerType.HARDWARE]
-         */
+        /** Allow WebView protected-media permission requests (DRM). */
+        var allowProtectedMedia: Boolean = false,
+        /** Allow MIDI SysEx permission requests. */
+        var allowMidiSysexMessages: Boolean = false,
+        /** Hide Chromium's default video poster. */
+        var hideDefaultVideoPoster: Boolean = false,
+        /** Android View layer type. */
         var layerType: Int = LayerType.HARDWARE,
+        /** Serve local content through WebViewAssetLoader rather than unrestricted file:// access. */
+        var enableSandbox: Boolean = false,
+        /** Virtual path handled by the sandbox asset loader. */
+        var sandboxSubdomain: String = "/app/",
     ) : PlatformWebSettings() {
         object LayerType {
             const val NONE = 0
@@ -180,75 +34,58 @@ sealed class PlatformWebSettings {
         }
     }
 
-    /**
-     * Desktop web settings
-     */
     data class DesktopWebSettings(
         var offScreenRendering: Boolean = false,
         var transparent: Boolean = true,
         var disablePopupWindows: Boolean = false,
     ) : PlatformWebSettings()
 
-    /**
-     * IOS web settings
-     */
     data class IOSWebSettings(
-        /**
-         * The ios default opaque display
-         * The default value is {@code false}.
-         * When Value is true will turn off these two properties:
-         * @param backgroundColor,@param underPageBackgroundColor
-         */
         var opaque: Boolean = false,
-        /**
-         * The background color of the WebView client. The default value is {@code null}.
-         * Will use WebSettings backgroundColor when null.
-         *
-         * @param backgroundColor a color value
-         */
         var backgroundColor: Color? = null,
-        /**
-         * The background color shown when the WebView client scrolls past the bounds of the active page.
-         * The default value is {@code null}. Will use WebSettings backgroundColor when null.
-         *
-         * @param underPageBackgroundColor a color value
-         */
         var underPageBackgroundColor: Color? = null,
-        /**
-         * Whether the WebView bounces when scrolled past content bounds.
-         * The default value is {@code true}.
-         */
         var bounces: Boolean = true,
-        /**
-         * Whether horizontal and vertical scrolling is enabled. The default value is {@code true}.
-         */
         var scrollEnabled: Boolean = true,
-        /**
-         * Whether the horizontal scroll indicator is visible. The default value is {@code true}.
-         */
         var showHorizontalScrollIndicator: Boolean = true,
-        /**
-         * Whether the vertical scroll indicator is visible. The default value is {@code true}.
-         */
         var showVerticalScrollIndicator: Boolean = true,
-
+        /** Fork-specific console capture switch. */
         var isOpenConsoleLog: Boolean = false,
-        var mediaTypesRequiringUserActionForPlayback:MediaTypesRequiringUserActionForPlayback = MediaTypesRequiringUserActionForPlayback.NONE
+        /** Fork-specific fine-grained autoplay policy. */
+        var mediaTypesRequiringUserActionForPlayback: MediaTypesRequiringUserActionForPlayback =
+            MediaTypesRequiringUserActionForPlayback.NONE,
+        /** Upstream compatibility switch. Fine-grained policy takes precedence when explicitly set. */
+        var mediaPlaybackRequiresUserGesture: Boolean = true,
+        /** Upstream per-platform inspectability setting. */
+        var isInspectable: Boolean = false,
+    ) : PlatformWebSettings()
 
-    ) : PlatformWebSettings(){
-
-    }
-    enum class MediaTypesRequiringUserActionForPlayback{
+    enum class MediaTypesRequiringUserActionForPlayback {
         ALL,
         AUDIO,
-        VIDEO,NONE
+        VIDEO,
+        NONE,
     }
+
+    /** Current upstream WasmJS settings. */
+    data class WasmJSWebSettings(
+        var backgroundColor: Color? = null,
+        var showBorder: Boolean = false,
+        var borderStyle: String = "1px solid #ccc",
+        var enableSandbox: Boolean = false,
+        var sandboxPermissions: String = "allow-scripts allow-same-origin allow-forms",
+        var allowFullscreen: Boolean = true,
+        var customContainerStyle: String? = null,
+        var enableConsoleLogging: Boolean = false,
+    ) : PlatformWebSettings()
+
     /**
-     * Wasm web settings
+     * Historical fork Wasm settings kept so existing source still compiles.
+     * The fork did not yet ship a Wasm target; new code should use [WasmJSWebSettings].
      */
+    @Deprecated("Use WasmJSWebSettings")
     data class WasmWebSettings(
         var offScreenRendering: Boolean = false,
         var transparent: Boolean = true,
         var disablePopupWindows: Boolean = false,
-        ): PlatformWebSettings()
+    ) : PlatformWebSettings()
 }
