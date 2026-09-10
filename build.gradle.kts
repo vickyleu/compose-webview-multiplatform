@@ -49,14 +49,14 @@ subprojects {
     }
 
     configurations.all {
-        resolutionStrategy {
-            eachDependency {
-                if (requested.group == "org.jetbrains.kotlin") {
-                    useVersion(libs.versions.kotlin.get())
-                } else if (requested.group.startsWith("org.jetbrains.compose")) {
-                    useVersion(libs.versions.compose.plugin.get())
-                } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
-                    useVersion(libs.versions.annotations.get())
+        if (!name.startsWith("ktlint")) {
+            resolutionStrategy {
+                eachDependency {
+                    if (requested.group == "org.jetbrains.kotlin") {
+                        useVersion(libs.versions.kotlin.get())
+                    } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
+                        useVersion(libs.versions.annotations.get())
+                    }
                 }
             }
         }
@@ -64,6 +64,13 @@ subprojects {
 
     afterEvaluate {
         apply(plugin = libs.plugins.ktlint.get().pluginId)
+        extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+            filter {
+                exclude { element ->
+                    element.file.path.replace('\\', '/').contains("/generated/")
+                }
+            }
+        }
     }
 
     if (name != "webview") return@subprojects
