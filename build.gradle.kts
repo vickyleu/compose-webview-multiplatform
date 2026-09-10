@@ -27,7 +27,7 @@ check(JavaVersion.current().isCompatibleWith(javaVersion)) {
 }
 
 val publishGroup = "io.github.vickyleu.webview"
-val publishVersion = "2.0.0"
+val publishVersion = "2.0.1"
 val publishRepo = "compose-webview-multiplatform"
 val publishUrl = "https://github.com/vickyleu/$publishRepo"
 
