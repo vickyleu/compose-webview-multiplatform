@@ -17,4 +17,13 @@ jobs:
           java-version: '17'
       - name: Check webview code style
         shell: bash
-        run: ./gradlew :webview:ktlintCheck
+        run: |
+          set -o pipefail
+          ./gradlew :webview:ktlintCheck --stacktrace --console=plain 2>&1 | tee ktlint.log
+      - name: Upload ktlint log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktlint-log
+          path: ktlint.log
+          if-no-files-found: ignore
