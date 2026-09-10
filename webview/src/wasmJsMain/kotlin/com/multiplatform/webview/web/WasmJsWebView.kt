@@ -144,6 +144,7 @@ class WasmJsWebView(
         val bridge = webViewJsBridge ?: return
         ensureBridgeMessageHandler(bridge)
         evaluateJavaScript(createJsBridgeScript(bridge.jsBridgeName, true))
+        bridge.registerDelegateMethod()
     }
 
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
@@ -168,26 +169,21 @@ class WasmJsWebView(
             if (iframe != null && messageEvent.source == iframe.contentWindow && messageEvent.data != null) {
                 runCatching {
                     val dataString = messageEvent.data.toString()
-                    if (dataString.contains(bridge.jsBridgeName)) {
-                        val action =
-                            """action[=:][\s]*['\"](.*?)['\"]"""
-                                .toRegex()
-                                .find(dataString)
-                                ?.groupValues
-                                ?.get(1)
-                        val params =
-                            """params[=:][\s]*['\"](.*?)['\"]"""
-                                .toRegex()
-                                .find(dataString)
-                                ?.groupValues
-                                ?.get(1) ?: "{}"
+                    if (dataString.contains(bridge.jsBridgeName) && dataString.startsWith("{")) {
+                        val actionPattern = """"action"\s*:\s*"([^"]*)"""".toRegex()
+                        val paramsPattern = """"params"\s*:\s*"((?:[^"\\]|\\.)*)"""".toRegex()
+                        val callbackPattern = """"callbackId"\s*:\s*(\d+)""".toRegex()
+
+                        val action = actionPattern.find(dataString)?.groupValues?.get(1)
+                        val rawParams = paramsPattern.find(dataString)?.groupValues?.get(1) ?: "{}"
+                        val params = rawParams.replace("\\\"", "\"").replace("\\\\", "\\")
                         val callbackId =
-                            """callbackId[=:][\s]*(\d+)"""
-                                .toRegex()
+                            callbackPattern
                                 .find(dataString)
                                 ?.groupValues
                                 ?.get(1)
                                 ?.toIntOrNull() ?: 0
+
                         if (action != null) {
                             bridge.dispatch(
                                 JsMessage(
