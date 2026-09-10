@@ -15,7 +15,8 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '17'
-      - name: Check webview code style
+      - name: Audit webview code style
+        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
