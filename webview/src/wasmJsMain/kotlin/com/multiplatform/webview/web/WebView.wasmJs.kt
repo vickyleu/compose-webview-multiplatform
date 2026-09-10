@@ -72,37 +72,18 @@ actual fun ActualWebView(
         }
     }
 
-    LaunchedEffect(state.content, state.webView) {
-        val webView = state.webView ?: return@LaunchedEffect
-        val content = state.content
-        if (content is WebContent.NavigatorOnly) return@LaunchedEffect
-
-        htmlViewState.loadingState = HtmlLoadingState.Loading
-        try {
-            webView.loadContent(content)
-        } catch (t: Throwable) {
-            htmlViewState.loadingState =
-                HtmlLoadingState.Finished(
-                    isError = true,
-                    errorMessage = t.message ?: "Failed to load content",
-                )
-        }
-    }
-
     LaunchedEffect(htmlViewState.lastLoadedUrl, htmlViewState.pageTitle, htmlViewState.loadingState) {
         state.lastLoadedUrl = htmlViewState.lastLoadedUrl
         state.pageTitle = htmlViewState.pageTitle
-        state.loadingState =
-            when (val loading = htmlViewState.loadingState) {
-                HtmlLoadingState.Loading -> LoadingState.Loading(0f)
-                is HtmlLoadingState.Finished ->
-                    if (loading.isError) {
-                        LoadingState.ErrorLoading(loading.errorMessage ?: "Failed to load content")
-                    } else {
-                        LoadingState.Finished
-                    }
-                HtmlLoadingState.Initializing -> LoadingState.Initializing
+        state.loadingState = when (val loading = htmlViewState.loadingState) {
+            HtmlLoadingState.Loading -> LoadingState.Loading(0f)
+            is HtmlLoadingState.Finished -> if (loading.isError) {
+                LoadingState.ErrorLoading(loading.errorMessage ?: "Failed to load content")
+            } else {
+                LoadingState.Finished
             }
+            HtmlLoadingState.Initializing -> LoadingState.Initializing
+        }
     }
 
     HtmlView(
@@ -110,13 +91,9 @@ actual fun ActualWebView(
         modifier = modifier,
         navigator = htmlNavigator,
         onCreated = { element ->
-            val param =
-                WebViewFactoryParam().apply {
-                    existingElement = element as? HTMLIFrameElement
-                }
+            val param = WebViewFactoryParam().apply { existingElement = element as? HTMLIFrameElement }
             val native =
-                if (
-                    state.webSettings.wasmJSWebSettings.let {
+                if (state.webSettings.wasmJSWebSettings.let {
                         it.backgroundColor != null ||
                             it.showBorder ||
                             it.enableSandbox ||
