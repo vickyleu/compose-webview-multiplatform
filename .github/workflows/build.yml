@@ -23,4 +23,13 @@ jobs:
         shell: bash
         env:
           GRADLE_OPTS: "-Xmx6G -XX:MaxMetaspaceSize=1024m"
-        run: ./gradlew assemble
+        run: |
+          set -o pipefail
+          ./gradlew assemble --stacktrace --console=plain 2>&1 | tee gradle-build.log
+      - name: Upload Gradle build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-${{ matrix.os }}
+          path: gradle-build.log
+          if-no-files-found: ignore
