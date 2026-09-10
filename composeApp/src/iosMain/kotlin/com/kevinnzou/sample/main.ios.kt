@@ -13,5 +13,4 @@ fun MainViewController() = ComposeUIViewController(configure = {
     this.opaque = true
 //        this.opaque = false  // 设置透明背景
     this.parallelRendering = true
-    this.enableBackGesture = true
 }) { WebViewApp() }
