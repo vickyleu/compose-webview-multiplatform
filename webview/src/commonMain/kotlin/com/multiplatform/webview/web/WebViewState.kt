@@ -30,7 +30,7 @@ class WebViewState(
         internal set
 
     val isLoading: Boolean
-        get() = loadingState !is LoadingState.Finished
+        get() = loadingState is LoadingState.Initializing || loadingState is LoadingState.Loading
 
     /** Fork-specific fullscreen state retained for source/behavior compatibility. */
     var fullscreenState by mutableStateOf(false)
