@@ -1,6 +1,6 @@
 @file:Suppress(
     "PARAMETER_NAME_CHANGED_ON_OVERRIDE",
-    "DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES"
+    "DIFFERENT_NAMES_FOR_THE_SAME_PARAMETER_IN_SUPERTYPES",
 )
 
 package com.multiplatform.webview.web
@@ -13,18 +13,13 @@ import com.multiplatform.webview.util.notZero
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSError
 import platform.Foundation.NSURLAuthenticationChallenge
 import platform.Foundation.NSURLAuthenticationMethodServerTrust
 import platform.Foundation.NSURLCredential
-import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
-import platform.Foundation.NSURLSessionAuthChallengeDisposition
+import platform.Foundation.NSURLSessionAuthChallengePerformDefaultHandling
 import platform.Foundation.NSURLSessionAuthChallengeUseCredential
 import platform.Foundation.allHTTPHeaderFields
 import platform.Foundation.credentialForTrust
@@ -40,18 +35,10 @@ import platform.WebKit.WKWebViewConfiguration
 import platform.WebKit.WKWindowFeatures
 import platform.darwin.NSObject
 
-/**
- * Created By Kevin Zou On 2023/9/13
- */
-
-/**
- * Navigation delegate for the WKWebView
- */
-//@Suppress("CONFLICTING_OVERLOADS")
 class WKNavigationDelegate(
     private val state: WebViewState,
     private val navigator: WebViewNavigator,
-    private val scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") private val scope: CoroutineScope,
 ) : NSObject(), WKNavigationDelegateProtocol, WKUIDelegateProtocol {
     private var isRedirect = false
 
@@ -59,56 +46,36 @@ class WKNavigationDelegate(
         webView: WKWebView,
         runJavaScriptAlertPanelWithMessage: String,
         initiatedByFrame: WKFrameInfo,
-        completionHandler: () -> Unit
+        completionHandler: () -> Unit,
     ) {
         navigator.onJsAlert(runJavaScriptAlertPanelWithMessage) {
             completionHandler()
         }
     }
 
-
     override fun webView(
         webView: WKWebView,
         createWebViewWithConfiguration: WKWebViewConfiguration,
         forNavigationAction: WKNavigationAction,
-        windowFeatures: WKWindowFeatures
+        windowFeatures: WKWindowFeatures,
     ): WKWebView? {
-        /**
-         * WKFrameInfo *frameInfo = navigationAction.targetFrame;
-         * if (![frameInfo isMainFrame]) {
-         * [webView loadRequest:navigationAction.request];
-         * }
-         */
-        KLogger.info {
-            "createWebViewWithConfiguration"
-        }
-        val frameInfo = forNavigationAction.targetFrame
-        if (frameInfo?.isMainFrame() == true) {
+        val targetFrame = forNavigationAction.targetFrame
+        if (targetFrame == null || !targetFrame.isMainFrame()) {
             webView.loadRequest(forNavigationAction.request)
         }
         return null
     }
 
-
-    /**
-     * Called when the web view begins to receive web content.
-     */
     @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didStartProvisionalNavigation: WKNavigation?,
     ) {
         state.loadingState = LoadingState.Loading(0f)
-        state.lastLoadedUrl = webView.URL.toString()
+        state.lastLoadedUrl = webView.URL?.absoluteString
         state.errorsForCurrentRequest.clear()
-        KLogger.info {
-            "didStartProvisionalNavigation"
-        }
     }
 
-    /**
-     * Called when the web view receives a server redirect.
-     */
     @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
@@ -116,79 +83,46 @@ class WKNavigationDelegate(
     ) {
         val supportZoom = if (state.webSettings.supportZoom) "yes" else "no"
         @Suppress("ktlint:standard:max-line-length")
-        val script = """(function(){
-                                var meta = document.createElement('meta');
-                                meta.setAttribute('name', 'viewport');
-                                meta.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=$supportZoom'); 
-                                document.getElementsByTagName('head')[0].appendChild(meta);
-                            })();
-        """.trimIndent()
-        webView.evaluateJavaScript(script) { resp, err ->
-            if(err!=null){
-                println("didCommitNavigation err:::${err}")
-            }else if(resp!=null){
-                println("didCommitNavigation resp:::${resp}")
-            }
+        val script =
+            "var meta=document.querySelector('meta[name=viewport]')||document.createElement('meta');meta.setAttribute('name','viewport');meta.setAttribute('content','width=device-width, initial-scale=${state.webSettings.zoomLevel}, maximum-scale=10.0, minimum-scale=0.1, user-scalable=$supportZoom');if(!meta.parentNode){document.getElementsByTagName('head')[0].appendChild(meta);}"
+        webView.evaluateJavaScript(script) { _, error ->
+            if (error != null) KLogger.e { "viewport injection failed: $error" }
         }
-        KLogger.info { "didCommitNavigation" }
     }
-
 
     @OptIn(ExperimentalForeignApi::class)
     override fun webView(
         webView: WKWebView,
         didReceiveAuthenticationChallenge: NSURLAuthenticationChallenge,
-        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit
+        completionHandler: (platform.Foundation.NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit,
     ) {
-        if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
-            val protocol = didReceiveAuthenticationChallenge.protectionSpace.protocol
-            val host = didReceiveAuthenticationChallenge.protectionSpace.host
-            val port = didReceiveAuthenticationChallenge.protectionSpace.port
-            // 手动拼接 URL
-            val fullUrl = webView.URL?.absoluteString?: ("${protocol?.let { "$it://" }}$host${port.let {
-                when(it){
-                    80L, 443L -> ""
-                    else -> ":$it"
-                }
-            }}")
-            if(fullUrl.isEmpty()) {
-                val credential =
-                    NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-            }else{
-                if(state.webSettings.sslPiningHosts.isNotEmpty()){
-                    val str = state.webSettings.sslPiningHosts.joinToString("|") {
-                        it.split(".").joinToString("\\.") // 使用单个反斜杠转义正则中的点
-                    }
-                    val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\.)*($str)(/.*)?$".toRegex()
-//                        val pattern = "^(https?://)?([a-zA-Z0-9_-]+\\\\.)*($str)(/.*)?$".toRegex()
-                    if (pattern.matches(fullUrl)) {
-                        val credential =
-                            NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-                        completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-                    } else {
-                        KLogger.info {
-                            "didReceiveAuthenticationChallenge ${fullUrl}"
-                        }
-                        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
-                    }
-                }else {
-                    KLogger.info {
-                        "didReceiveAuthenticationChallenge $fullUrl"
-                    }
-                    completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null) // 取消不匹配的URL
-                }
+        val protectionSpace = didReceiveAuthenticationChallenge.protectionSpace
+        if (protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+            return
+        }
+
+        val host = protectionSpace.host.lowercase()
+        val allowlisted =
+            state.webSettings.sslPiningHosts.any { configured ->
+                val allowed = configured.trim().lowercase().trimStart('.').removeSuffix(".")
+                allowed.isNotEmpty() && (host == allowed || host.endsWith(".$allowed"))
             }
-        }else{
-            val credential =
-                NSURLCredential.credentialForTrust(didReceiveAuthenticationChallenge.protectionSpace.serverTrust)
-            completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+
+        val trust = protectionSpace.serverTrust
+        if (allowlisted && trust != null) {
+            KLogger.w { "Using fork SSL allowlist compatibility for host=$host" }
+            completionHandler(
+                NSURLSessionAuthChallengeUseCredential,
+                NSURLCredential.credentialForTrust(trust),
+            )
+        } else {
+            // Normal hosts keep Apple's default certificate validation. The allowlist never widens
+            // trust beyond explicitly configured hosts.
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
         }
     }
 
-    /**
-     * Called when the web view finishes loading.
-     */
     @OptIn(ExperimentalForeignApi::class)
     @ObjCSignatureOverride
     override fun webView(
@@ -196,46 +130,35 @@ class WKNavigationDelegate(
         didFinishNavigation: WKNavigation?,
     ) {
         state.pageTitle = webView.title
-        state.lastLoadedUrl = webView.URL.toString()
+        state.lastLoadedUrl = webView.URL?.absoluteString
         state.loadingState = LoadingState.Finished
         navigator.canGoBack = webView.canGoBack
         navigator.canGoForward = webView.canGoForward
-        // Restore scroll position on iOS 14 and below
-        if (getPlatformVersionDouble() < 15.0) {
-            if (state.scrollOffset.notZero()) {
-                webView.scrollView.setContentOffset(
-                    CGPointMake(
-                        x = state.scrollOffset.first.toDouble(),
-                        y = state.scrollOffset.second.toDouble(),
-                    ),
-                    true,
-                )
-            }
+        if (getPlatformVersionDouble() < 15.0 && state.scrollOffset.notZero()) {
+            webView.scrollView.setContentOffset(
+                CGPointMake(
+                    x = state.scrollOffset.first.toDouble(),
+                    y = state.scrollOffset.second.toDouble(),
+                ),
+                true,
+            )
         }
-        KLogger.info { "didFinishNavigation ${state.lastLoadedUrl}" }
     }
 
-    /**
-     * Called when the web view fails to load content.
-     */
     @ObjCSignatureOverride
     override fun webView(
         webView: WKWebView,
         didFailProvisionalNavigation: WKNavigation?,
         withError: NSError,
     ) {
-        KLogger.e {
-            "WebView Loading Failed with error: ${withError.localizedDescription}"
-        }
+        KLogger.e { "WebView loading failed: ${withError.localizedDescription}" }
         state.errorsForCurrentRequest.add(
             WebViewError(
-                withError.code.toInt(),
-                withError.localizedDescription,
+                code = withError.code.toInt(),
+                description = withError.localizedDescription,
+                isFromMainFrame = true,
             ),
         )
-        KLogger.e {
-            "didFailNavigation"
-        }
     }
 
     override fun webView(
@@ -244,52 +167,35 @@ class WKNavigationDelegate(
         decisionHandler: (WKNavigationActionPolicy) -> Unit,
     ) {
         val url = decidePolicyForNavigationAction.request.URL?.absoluteString
-        KLogger.info {
-            "Outer decidePolicyForNavigationAction: $url $isRedirect $decidePolicyForNavigationAction"
-        }
-        if (url != null && !isRedirect &&
+        if (
+            url != null &&
+            !isRedirect &&
             navigator.requestInterceptor != null &&
-            decidePolicyForNavigationAction.targetFrame?.mainFrame == true
+            decidePolicyForNavigationAction.targetFrame?.mainFrame != false
         ) {
-            navigator.requestInterceptor.apply {
-                val request = decidePolicyForNavigationAction.request
-                val headerMap = mutableMapOf<String, String>()
-                request.allHTTPHeaderFields?.forEach {
-                    headerMap[it.key.toString()] = it.value.toString()
-                }
-                KLogger.info {
-                    "decidePolicyForNavigationAction: ${request.URL?.absoluteString}, $headerMap"
-                }
-                val webRequest =
-                    WebRequest(
-                        request.URL?.absoluteString ?: "",
-                        headerMap,
-                        decidePolicyForNavigationAction.targetFrame?.mainFrame ?: false,
-                        isRedirect,
-                        request.HTTPMethod ?: "GET",
-                    )
-                val interceptResult =
-                    navigator.requestInterceptor.onInterceptUrlRequest(
-                        webRequest,
-                        navigator,
-                    )
-                when (interceptResult) {
-                    is WebRequestInterceptResult.Allow -> {
-                        decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
-                    }
-
-                    is WebRequestInterceptResult.Reject -> {
-                        decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
-                    }
-
-                    is WebRequestInterceptResult.Modify -> {
-                        isRedirect = true
-                        interceptResult.request.apply {
-                            navigator.stopLoading()
-                            navigator.loadUrl(this.url, this.headers)
-                        }
-                        decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
-                    }
+            val request = decidePolicyForNavigationAction.request
+            val headerMap = mutableMapOf<String, String>()
+            request.allHTTPHeaderFields?.forEach {
+                headerMap[it.key.toString()] = it.value.toString()
+            }
+            val webRequest =
+                WebRequest(
+                    request.URL?.absoluteString ?: "",
+                    headerMap,
+                    decidePolicyForNavigationAction.targetFrame?.mainFrame ?: true,
+                    isRedirect,
+                    request.HTTPMethod ?: "GET",
+                )
+            when (val result = navigator.requestInterceptor!!.onInterceptUrlRequest(webRequest, navigator)) {
+                is WebRequestInterceptResult.Allow ->
+                    decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+                is WebRequestInterceptResult.Reject ->
+                    decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+                is WebRequestInterceptResult.Modify -> {
+                    isRedirect = true
+                    navigator.stopLoading()
+                    navigator.loadUrl(result.request.url, result.request.headers)
+                    decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
                 }
             }
         } else {
