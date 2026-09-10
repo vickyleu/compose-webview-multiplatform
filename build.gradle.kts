@@ -27,7 +27,7 @@ check(JavaVersion.current().isCompatibleWith(javaVersion)) {
 }
 
 val publishGroup = "io.github.vickyleu.webview"
-val publishVersion = "2.0.1"
+val publishVersion = "2.0.5"
 val publishRepo = "compose-webview-multiplatform"
 val publishUrl = "https://github.com/vickyleu/$publishRepo"
 
@@ -96,7 +96,7 @@ subprojects {
 
         pom {
             name.set("Vickyleu KMP WebView")
-            description.set("A Compose Multiplatform WebView library for Android, iOS, and desktop.")
+            description.set("A Compose Multiplatform WebView library for Android, iOS, desktop, and WasmJS.")
             inceptionYear.set("2024")
             url.set(publishUrl)
             licenses {
