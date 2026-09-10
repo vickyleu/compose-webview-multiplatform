@@ -27,7 +27,7 @@ check(JavaVersion.current().isCompatibleWith(javaVersion)) {
 }
 
 val publishGroup = "io.github.vickyleu.webview"
-val publishVersion = "2.0.0"
+val publishVersion = "2.0.5"
 val publishRepo = "compose-webview-multiplatform"
 val publishUrl = "https://github.com/vickyleu/$publishRepo"
 
@@ -49,14 +49,14 @@ subprojects {
     }
 
     configurations.all {
-        resolutionStrategy {
-            eachDependency {
-                if (requested.group == "org.jetbrains.kotlin") {
-                    useVersion(libs.versions.kotlin.get())
-                } else if (requested.group.startsWith("org.jetbrains.compose")) {
-                    useVersion(libs.versions.compose.plugin.get())
-                } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
-                    useVersion(libs.versions.annotations.get())
+        if (!name.startsWith("ktlint")) {
+            resolutionStrategy {
+                eachDependency {
+                    if (requested.group == "org.jetbrains.kotlin") {
+                        useVersion(libs.versions.kotlin.get())
+                    } else if (requested.group == "org.jetbrains" && requested.name == "annotations") {
+                        useVersion(libs.versions.annotations.get())
+                    }
                 }
             }
         }
@@ -64,6 +64,13 @@ subprojects {
 
     afterEvaluate {
         apply(plugin = libs.plugins.ktlint.get().pluginId)
+        extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+            filter {
+                exclude { element ->
+                    element.file.path.replace('\\', '/').contains("/generated/")
+                }
+            }
+        }
     }
 
     if (name != "webview") return@subprojects
@@ -96,7 +103,7 @@ subprojects {
 
         pom {
             name.set("Vickyleu KMP WebView")
-            description.set("A Compose Multiplatform WebView library for Android, iOS, and desktop.")
+            description.set("A Compose Multiplatform WebView library for Android, iOS, desktop, and WasmJS.")
             inceptionYear.set("2024")
             url.set(publishUrl)
             licenses {

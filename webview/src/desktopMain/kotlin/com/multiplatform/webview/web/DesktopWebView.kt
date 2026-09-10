@@ -3,8 +3,10 @@ package com.multiplatform.webview.web
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.KLogger
+import com.multiplatform.webview.util.tempDirectory
 import dev.datlag.kcef.KCEFBrowser
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
@@ -14,12 +16,13 @@ import org.cef.handler.CefMessageRouterHandlerAdapter
 import org.cef.network.CefPostData
 import org.cef.network.CefPostDataElement
 import org.cef.network.CefRequest
+import org.jetbrains.compose.resources.InternalResourceApi
+import java.io.File
+import java.net.JarURLConnection
+import java.net.URI
 
 actual typealias NativeWebView = KCEFBrowser
 
-/**
- * Created By Kevin Zou On 2023/9/12
- */
 class DesktopWebView(
     override val webView: KCEFBrowser,
     override val scope: CoroutineScope,
@@ -41,13 +44,10 @@ class DesktopWebView(
             val request =
                 CefRequest.create().apply {
                     this.url = url
-                    this.setHeaderMap(additionalHttpHeaders)
+                    setHeaderMap(additionalHttpHeaders)
                 }
             webView.loadRequest(request)
         } else {
-            KLogger.d {
-                "DesktopWebView loadUrl $url"
-            }
             webView.loadURL(url)
         }
     }
@@ -60,16 +60,86 @@ class DesktopWebView(
         historyUrl: String?,
         additionalHttpHeaders: Map<String, String>,
     ) {
-        KLogger.d {
-            "DesktopWebView loadHtml"
+        if (html == null) {
+            KLogger.e { "DesktopWebView loadHtml: HTML content is null" }
+            return
         }
-        if (html != null) {
+        try {
             webView.loadHtml(html, baseUrl ?: KCEFBrowser.BLANK_URI)
+        } catch (t: Throwable) {
+            KLogger.e(t) { "DesktopWebView loadHtml failed" }
         }
     }
 
-    override suspend fun loadHtmlFile(fileName: String,additionalHttpHeaders: Map<String, String>,) {
-        // TODO
+    @OptIn(InternalResourceApi::class)
+    override suspend fun loadHtmlFile(
+        fileName: String,
+        readType: WebViewFileReadType,
+        additionalHttpHeaders: Map<String, String>,
+    ) {
+        var attemptedPath = fileName
+        try {
+            when (readType) {
+                WebViewFileReadType.ASSET_RESOURCES -> {
+                    val path = fileName.removePrefix("/")
+                    attemptedPath = "assets/$path"
+                    val input = this::class.java.classLoader.getResourceAsStream(attemptedPath)
+                        ?: error("Resource not found: $attemptedPath")
+                    val outFile = File(tempDirectory, path.substringAfterLast('/'))
+                    input.use { source -> outFile.outputStream().use(source::copyTo) }
+
+                    val baseFolder = attemptedPath.substringBeforeLast("/", "")
+                    val basePath = if (baseFolder.isEmpty()) "" else "$baseFolder/"
+                    val resources = this::class.java.classLoader.getResources(basePath)
+                    while (resources.hasMoreElements()) {
+                        val connection = resources.nextElement().openConnection()
+                        if (connection is JarURLConnection) {
+                            val jar = connection.jarFile
+                            for (entry in jar.entries()) {
+                                if (entry.name.startsWith(basePath) && !entry.isDirectory) {
+                                    val target = File(tempDirectory, entry.name.substringAfterLast('/'))
+                                    if (!target.exists()) {
+                                        jar.getInputStream(entry).use { source ->
+                                            target.outputStream().use(source::copyTo)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    delay(100)
+                    loadUrl(outFile.toURI().toString(), additionalHttpHeaders)
+                }
+
+                WebViewFileReadType.COMPOSE_RESOURCE_FILES -> {
+                    val parts = fileName.split("!/")
+                    if (parts.size != 2) error("Invalid JAR URI format: $fileName")
+                    val pathInJar = parts[1].removePrefix("/")
+                    attemptedPath = pathInJar
+                    val jarFileUrl = parts[0].removePrefix("jar:")
+                    val jarUrl = URI("jar", "$jarFileUrl!/", null).toURL()
+                    val jar = (jarUrl.openConnection() as JarURLConnection).jarFile
+                    val parent = pathInJar.substringBeforeLast("/", "")
+                    for (entry in jar.entries()) {
+                        if (entry.name.startsWith(parent) && !entry.isDirectory) {
+                            val target = File(tempDirectory, entry.name.substringAfterLast('/'))
+                            target.outputStream().use { output ->
+                                jar.getInputStream(entry).use { it.copyTo(output) }
+                            }
+                        }
+                    }
+                    val html = File(tempDirectory, pathInJar.substringAfterLast('/'))
+                    if (!html.exists()) error("Extracted HTML file not found: ${html.absolutePath}")
+                    delay(100)
+                    loadUrl(html.toURI().toString(), additionalHttpHeaders)
+                }
+            }
+        } catch (t: Throwable) {
+            KLogger.e(t) { "DesktopWebView loadHtmlFile failed: $fileName ($readType)" }
+            loadHtml(
+                "<html><body><h2>Error Loading File</h2><p>$attemptedPath</p><p>${t.message}</p></body></html>",
+            )
+        }
     }
 
     override fun postUrl(
@@ -80,11 +150,12 @@ class DesktopWebView(
         val request =
             CefRequest.create().apply {
                 this.url = url
+                if (additionalHttpHeaders.isNotEmpty()) setHeaderMap(additionalHttpHeaders)
                 this.postData =
                     CefPostData.create().apply {
-                        this.addElement(
+                        addElement(
                             CefPostDataElement.create().apply {
-                                this.setToBytes(postData.size, postData)
+                                setToBytes(postData.size, postData)
                             },
                         )
                     }
@@ -99,44 +170,34 @@ class DesktopWebView(
     override fun reload() = webView.reload()
 
     override fun stopLoading() = webView.stopLoad()
+
     override fun destroy() {
-        stopLoading()
-        webView.close(true)
+        runCatching { stopLoading() }
+        runCatching { webView.close(true) }
     }
 
     override fun evaluateJavaScript(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        KLogger.d {
-            "evaluateJavaScript: $script"
-        }
-        webView.evaluateJavaScript(script) {
-            if (it != null) {
-                callback?.invoke(it)
-            }
+        webView.evaluateJavaScript(script) { result ->
+            if (result != null) callback?.invoke(result)
         }
     }
 
     override fun injectJsBridge() {
-        if (webViewJsBridge == null) return
+        val bridge = webViewJsBridge ?: return
         super.injectJsBridge()
-        KLogger.d {
-            "DesktopWebView injectJsBridge"
-        }
-        val callDesktop =
+        evaluateJavaScript(
             """
-            window.${webViewJsBridge.jsBridgeName}.postMessage = function (message) {
-                    window.cefQuery({request:message});
-                };
-            """.trimIndent()
-        evaluateJavaScript(callDesktop)
+            window.${bridge.jsBridgeName}.postMessage = function (message) {
+                window.cefQuery({request:message});
+            };
+            """.trimIndent(),
+        )
     }
 
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
-        KLogger.d {
-            "DesktopWebView initJsBridge"
-        }
         val router = CefMessageRouter.create()
         val handler =
             object : CefMessageRouterHandlerAdapter() {
@@ -148,20 +209,8 @@ class DesktopWebView(
                     persistent: Boolean,
                     callback: CefQueryCallback?,
                 ): Boolean {
-                    if (request == null) {
-                        return super.onQuery(
-                            browser,
-                            frame,
-                            queryId,
-                            request,
-                            persistent,
-                            callback,
-                        )
-                    }
+                    if (request == null) return false
                     val message = Json.decodeFromString<JsMessage>(request)
-                    KLogger.d {
-                        "onQuery Message: $message"
-                    }
                     webViewJsBridge.dispatch(message)
                     return true
                 }
@@ -170,11 +219,7 @@ class DesktopWebView(
         webView.client.addMessageRouter(router)
     }
 
-    override fun saveState(): WebViewBundle? {
-        return null
-    }
+    override fun saveState(): WebViewBundle? = null
 
-    override fun scrollOffset(): Pair<Int, Int> {
-        return Pair(0, 0)
-    }
+    override fun scrollOffset(): Pair<Int, Int> = 0 to 0
 }

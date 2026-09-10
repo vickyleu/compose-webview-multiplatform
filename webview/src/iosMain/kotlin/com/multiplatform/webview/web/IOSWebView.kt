@@ -8,35 +8,33 @@ import com.multiplatform.webview.util.getPlatformVersionDouble
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.allocArrayOf
 import kotlinx.cinterop.convert
-import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.CoroutineScope
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
+import platform.Foundation.NSArray
 import platform.Foundation.NSBundle
 import platform.Foundation.NSData
+import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSMutableURLRequest
+import platform.Foundation.NSSearchPathForDirectoriesInDomains
+import platform.Foundation.NSString
 import platform.Foundation.NSURL
+import platform.Foundation.NSUserDomainMask
 import platform.Foundation.create
 import platform.Foundation.setValue
+import platform.Foundation.stringByDeletingLastPathComponent
 import platform.WebKit.WKUserScript
 import platform.WebKit.WKUserScriptInjectionTime
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
 import platform.darwin.NSObjectMeta
 
-/**
- * Created By Kevin Zou On 2023/9/5
- */
-
 actual typealias NativeWebView = WKWebView
 
-/**
- * iOS implementation of [IWebView]
- */
+/** iOS implementation of [IWebView]. */
 class IOSWebView(
     override val webView: WKWebView,
     override val scope: CoroutineScope,
@@ -55,20 +53,34 @@ class IOSWebView(
         additionalHttpHeaders: Map<String, String>,
     ) {
         KLogger.d { "Load url: $url" }
-        val request =
-            NSMutableURLRequest.requestWithURL(
-                URL = NSURL(string = url),
-            )
-        additionalHttpHeaders.all { (key, value) ->
-            request.setValue(
-                value = value,
-                forHTTPHeaderField = key,
-            )
-            true
+
+        if (url.startsWith("file://")) {
+            val fileUrl = NSURL(string = url)
+            if (fileUrl != null && fileUrl.isFileURL()) {
+                val documentPaths =
+                    NSSearchPathForDirectoriesInDomains(
+                        NSDocumentDirectory,
+                        NSUserDomainMask,
+                        true,
+                    ) as NSArray
+                val readAccessUrl =
+                    if (documentPaths.count > 0u) {
+                        (documentPaths.objectAtIndex(0u) as? String)?.let { NSURL.fileURLWithPath(it) }
+                    } else {
+                        null
+                    }
+                if (readAccessUrl != null) {
+                    webView.loadFileURL(fileUrl, readAccessUrl)
+                    return
+                }
+            }
         }
-        webView.loadRequest(
-            request = request,
-        )
+
+        val request = NSMutableURLRequest.requestWithURL(NSURL(string = url))
+        additionalHttpHeaders.forEach { (key, value) ->
+            request.setValue(value, forHTTPHeaderField = key)
+        }
+        webView.loadRequest(request)
     }
 
     override fun loadHtml(
@@ -80,75 +92,95 @@ class IOSWebView(
         additionalHttpHeaders: Map<String, String>,
     ) {
         if (html == null) {
-            KLogger.e {
-                "LoadHtml: html is null"
-            }
+            KLogger.e { "LoadHtml: html is null" }
             return
         }
-        webView.loadHTMLString(
-            string = html,
-            baseURL = baseUrl?.let { NSURL.URLWithString(it) },
-        )
+        // WKWebView.loadHTMLString has no request-header parameter. Keep the fork API for source
+        // compatibility without pretending the headers can be applied to an in-memory HTML load.
+        webView.loadHTMLString(html, baseUrl?.let { NSURL.URLWithString(it) })
     }
 
     override suspend fun loadHtmlFile(
         fileName: String,
-        additionalHttpHeaders: Map<String, String>
+        readType: WebViewFileReadType,
+        additionalHttpHeaders: Map<String, String>,
     ) {
-        val res = NSBundle.mainBundle.resourcePath + "/compose-resources/assets/" + fileName
-        val url = NSURL.fileURLWithPath(res)
-        webView.loadFileURL(url, url)
+        try {
+            val fileUrl: NSURL
+            val readAccessUrl: NSURL?
+            when (readType) {
+                WebViewFileReadType.ASSET_RESOURCES -> {
+                    val resourcePath =
+                        (NSBundle.mainBundle.resourcePath ?: "") + "/compose-resources/assets/" + fileName
+                    fileUrl = NSURL.fileURLWithPath(resourcePath)
+                    val parent = (resourcePath as NSString).stringByDeletingLastPathComponent()
+                    readAccessUrl =
+                        if (parent.isNotBlank()) {
+                            NSURL.fileURLWithPath(parent)
+                        } else {
+                            NSBundle.mainBundle.resourcePath?.let { NSURL.fileURLWithPath(it) }
+                        }
+                }
+
+                WebViewFileReadType.COMPOSE_RESOURCE_FILES -> {
+                    fileUrl = NSURL(string = fileName)
+                    val parent = (fileName as NSString).stringByDeletingLastPathComponent()
+                    readAccessUrl = NSURL(string = parent)
+                }
+            }
+
+            if (!fileUrl.isFileURL()) {
+                KLogger.e { "Not a valid file URL: ${fileUrl.absoluteString}" }
+                loadHtml("<html><body>Error: Not a file URL</body></html>")
+                return
+            }
+            if (readAccessUrl?.path.isNullOrEmpty()) {
+                KLogger.e { "Unable to determine read access URL for ${fileUrl.absoluteString}" }
+                loadHtml("<html><body>Error: Cannot determine read access URL</body></html>")
+                return
+            }
+            webView.loadFileURL(fileUrl, readAccessUrl!!)
+        } catch (t: Throwable) {
+            KLogger.e(t) { "Error loading HTML file: $fileName ($readType)" }
+            loadHtml(
+                "<html><body><h1>Error Loading File</h1><p>${t.message ?: "Unknown error"}</p></body></html>",
+            )
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     override fun postUrl(
         url: String,
-        postData: ByteArray, additionalHttpHeaders: Map<String, String>
+        postData: ByteArray,
+        additionalHttpHeaders: Map<String, String>,
     ) {
-        val request =
-            NSMutableURLRequest(
-                uRL = NSURL(string = url),
-            )
-        val req = request
-        req.HTTPMethod = "POST"
-
-        req.HTTPBody =  postData.usePinned {
-            NSData.create(bytes = it.addressOf(0), length = postData.size.convert())
+        val request = NSMutableURLRequest(uRL = NSURL(string = url))
+        request.HTTPMethod = "POST"
+        additionalHttpHeaders.forEach { (key, value) ->
+            request.setValue(value, forHTTPHeaderField = key)
         }
-        webView.loadRequest(request = request)
+        request.HTTPBody =
+            postData.usePinned {
+                NSData.create(bytes = it.addressOf(0), length = postData.size.convert())
+            }
+        webView.loadRequest(request)
     }
 
-    override fun goBack() {
-        webView.goBack()
-    }
+    override fun goBack() = webView.goBack()
 
-    override fun goForward() {
-        webView.goForward()
-    }
+    override fun goForward() = webView.goForward()
 
-    override fun reload() {
-        webView.reload()
-    }
+    override fun reload() = webView.reload()
 
-    override fun stopLoading() {
-        webView.stopLoading()
-    }
+    override fun stopLoading() = webView.stopLoading()
 
     override fun destroy() {
-        // 执行 JavaScript 脚本来暂停所有音视频元素
-        val pauseScript = """
-        var videos = document.querySelectorAll('video');
-        var audios = document.querySelectorAll('audio');
-        videos.forEach(function(video) {
-            video.pause();
-        });
-        audios.forEach(function(audio) {
-            audio.pause();
-        });
-    """.trimIndent()
+        val pauseScript =
+            """
+            document.querySelectorAll('video').forEach(function(video) { video.pause(); });
+            document.querySelectorAll('audio').forEach(function(audio) { audio.pause(); });
+            """.trimIndent()
         webView.evaluateJavaScript(pauseScript) { _, _ ->
-            // 确保所有音视频都已暂停后再执行清理操作
-            // 停止加载并移除 WKWebView
             webView.stopLoading()
             webView.configuration.userContentController.removeAllUserScripts()
             webView.configuration.userContentController.removeAllScriptMessageHandlers()
@@ -160,85 +192,70 @@ class IOSWebView(
         script: String,
         callback: ((String) -> Unit)?,
     ) {
-        webView.evaluateJavaScript("""(function() {
-            $script
-        })()""".trimIndent()) Call@{ result, error ->
+        webView.evaluateJavaScript(script) { result, error ->
             if (error != null) {
-                KLogger.e { "evaluateJavaScript error: $error  script:  $script" }
-            }
-            if (callback == null) return@Call
-            if (error != null) {
-                callback.invoke(error.localizedDescription())
+                KLogger.e { "evaluateJavaScript error: $error" }
+                callback?.invoke(error.localizedDescription())
             } else {
-                KLogger.info { "evaluateJavaScript result: $result" }
-                callback.invoke(result?.toString() ?: "")
+                callback?.invoke(result?.toString() ?: "")
             }
         }
     }
 
     override fun injectJsBridge() {
-        if (webViewJsBridge == null) return
-        KLogger.info {
-            "iOS WebView injectJsBridge"
-        }
+        val bridge = webViewJsBridge ?: return
         super.injectJsBridge()
         val callIOS =
             """
-            window.${webViewJsBridge.jsBridgeName}.postMessage = function (message) {
-                    window.webkit.messageHandlers.iosJsBridge.postMessage(message);
-                };
+            window.${bridge.jsBridgeName}.postMessage = function (message) {
+                window.webkit.messageHandlers.iosJsBridge.postMessage(message);
+            };
             """.trimIndent()
         evaluateJavaScript(callIOS)
     }
 
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
-        KLogger.info { "injectBridge" }
-        val jsConsoleHandler = WKJsConsoleMessageHandler()
         val jsMessageHandler = WKJsMessageHandler(webViewJsBridge)
+        val jsConsoleHandler = WKJsConsoleMessageHandler()
+        val controller = webView.configuration.userContentController
+        controller.addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
+        controller.addScriptMessageHandler(jsConsoleHandler, "consoleLog")
 
-        val ucc = webView.configuration.userContentController
-        ucc.addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
-        ucc.addScriptMessageHandler(jsConsoleHandler, "consoleLog")
-        println("注入consoleLog处理器")
-        val logScript = WKUserScript(
-            """(function() {
-                    var lastTouchEnd = 0;
-                    document.documentElement.addEventListener('touchend', function(event) {
-                        var now = (new Date()).getTime();
-                        if (now - lastTouchEnd <= 300) {
-                            event.preventDefault();
+        // Preserve the fork's console capture and double-tap suppression behavior.
+        controller.addUserScript(
+            WKUserScript(
+                source =
+                    """
+                    (function() {
+                        var lastTouchEnd = 0;
+                        document.documentElement.addEventListener('touchend', function(event) {
+                            var now = (new Date()).getTime();
+                            if (now - lastTouchEnd <= 300) event.preventDefault();
+                            lastTouchEnd = now;
+                        }, false);
+                        function captureLog() {
+                            window.webkit.messageHandlers.consoleLog.postMessage(
+                                Array.prototype.slice.call(arguments).join(' ')
+                            );
                         }
-                        lastTouchEnd = now;
-                    }, false);
-                    
-                    function captureLog(...args) { 
-                        window.webkit.messageHandlers.consoleLog.postMessage(args.join(' '));
-                    };
-                    window.console.log = captureLog;
-                })();""".trimIndent(),
-            WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
-            true
+                        window.console.log = captureLog;
+                    })();
+                    """.trimIndent(),
+                injectionTime = WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentEnd,
+                forMainFrameOnly = true,
+            ),
         )
-        ucc.addUserScript(logScript)
-        println("替换console.log方法实现,映射方法到consoleLog")
-
     }
 
     override fun saveState(): WebViewBundle? {
-        // iOS 15- does not support saving state
-        if (getPlatformVersionDouble() < 15.0) {
-            return null
-        }
-        val data = webView.interactionState as NSData?
-        return data
+        if (getPlatformVersionDouble() < 15.0) return null
+        return webView.interactionState as NSData?
     }
 
     @OptIn(ExperimentalForeignApi::class)
     override fun scrollOffset(): Pair<Int, Int> {
         val offset = webView.scrollView.contentOffset
-        offset.useContents {
-            return Pair(x.toInt(), y.toInt())
-        }
+        offset.useContents { return x.toInt() to y.toInt() }
     }
 
     private class BundleMarker : NSObject() {

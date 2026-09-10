@@ -4,114 +4,47 @@ import androidx.compose.ui.graphics.Color
 import com.multiplatform.webview.util.KLogSeverity
 import com.multiplatform.webview.util.KLogger
 
-/**
- * Created By Kevin Zou On 2023/9/20
- */
-
-/**
- * Web settings for different platform
- */
+/** Web settings shared across platforms plus platform-specific configuration. */
 class WebSettings {
-    /**
-     * Whether the WebView should enable JavaScript execution.
-     * Default is true.
-     */
     var isJavaScriptEnabled = true
 
+    /** Historical fork-wide inspectability flag. */
     var isInspectable = true
 
-    /**
-     * WebView's user-agent string.
-     * Default is null.
-     */
     var customUserAgentString: String? = null
 
-    /**
-     * Set the zoom level of the WebView.
-     * Default is 1.0.
-     */
     var zoomLevel: Double = 1.0
 
-    /**
-     * whether the WebView should support zooming using its on-screen zoom
-     * controls and gestures. The default is {@code true}.
-     *
-     * @param support whether the WebView should support zoom
-     */
     var supportZoom: Boolean = true
 
-    /**
-     * Whether cross-origin requests in the context of a file scheme URL should be allowed to
-     * access content from other file scheme URLs. Note that some accesses such as image HTML
-     * elements don't follow same-origin rules and aren't affected by this setting.
-     * <p>
-     * <b>Don't</b> enable this setting if you open files that may be created or altered by
-     * external sources. Enabling this setting allows malicious scripts loaded in a {@code file://}
-     * context to access arbitrary local files including WebView cookies and app private data.
-     * <p class="note">
-     * Loading content via {@code file://} URLs is generally discouraged. See the note in
-     * {@link #setAllowFileAccess}.
-     * <p>
-     *
-     *  The default value is false.
-     */
     var allowFileAccessFromFileURLs: Boolean = false
 
-    /**
-     * Whether cross-origin requests in the context of a file scheme URL should be allowed to
-     * access content from <i>any</i> origin. This includes access to content from other file
-     * scheme URLs or web contexts. Note that some access such as image HTML elements doesn't
-     * follow same-origin rules and isn't affected by this setting.
-     * <p>
-     * <b>Don't</b> enable this setting if you open files that may be created or altered by
-     * external sources. Enabling this setting allows malicious scripts loaded in a {@code file://}
-     * context to launch cross-site scripting attacks, either accessing arbitrary local files
-     * including WebView cookies, app private data or even credentials used on arbitrary web sites.
-     * <p class="note">
-     * Loading content via {@code file://} URLs is generally discouraged. See the note in
-     * {@link #setAllowFileAccess}.
-     * <p>
-     *
-     * The default value is false.
-     */
     var allowUniversalAccessFromFileURLs: Boolean = false
 
-    /**
-     * Log severity for the WebView.
-     * Default is [KLogSeverity.Info]
-     */
     var logSeverity: KLogSeverity = KLogSeverity.Info
         set(value) {
             field = value
             KLogger.setMinSeverity(value)
         }
 
-    /**
-     * The background color of the WebView client. The default value is {@code Color.Transparent}.
-     * Not supported on Desktop platform.
-     */
     var backgroundColor = Color.Transparent
 
-
+    /**
+     * Historical fork API. Despite the name this is an SSL-error host allowlist,
+     * not conventional certificate/public-key pinning.
+     */
     var sslPiningHosts: List<String> = emptyList()
 
-    /**
-     * Android platform specific settings
-     */
     val androidWebSettings = PlatformWebSettings.AndroidWebSettings()
 
-    /**
-     * Desktop platform specific settings
-     */
     val desktopWebSettings = PlatformWebSettings.DesktopWebSettings()
 
-    /**
-     * iOS platform specific settings
-     */
     val iOSWebSettings = PlatformWebSettings.IOSWebSettings()
 
-    /**
-     * Web platform specific settings
-     */
+    /** Current upstream WasmJS settings. */
+    val wasmJSWebSettings = PlatformWebSettings.WasmJSWebSettings()
+
+    /** Historical fork property retained for source compatibility. */
+    @Deprecated("Use wasmJSWebSettings")
     val wasmWebSettings = PlatformWebSettings.WasmWebSettings()
 }

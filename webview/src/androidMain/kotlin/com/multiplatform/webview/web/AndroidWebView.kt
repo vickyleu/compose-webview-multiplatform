@@ -2,25 +2,21 @@ package com.multiplatform.webview.web
 
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import com.multiplatform.webview.jsbridge.ConsoleBridge
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.KLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.Json
 
-/**
- * Created By Kevin Zou On 2023/9/5
- */
-
 actual typealias NativeWebView = WebView
 
-/**
- * Android implementation of [IWebView]
- */
+/** Android implementation of [IWebView]. */
 class AndroidWebView(
     override val webView: WebView,
     override val scope: CoroutineScope,
     override val webViewJsBridge: WebViewJsBridge?,
+    override val consoleBridge: ConsoleBridge? = null,
 ) : IWebView {
     init {
         initWebView()
@@ -46,49 +42,57 @@ class AndroidWebView(
         additionalHttpHeaders: Map<String, String>,
     ) {
         if (html == null) return
+        // Android's loadDataWithBaseURL does not expose request headers. Keep the fork parameter
+        // for source compatibility rather than pretending the headers can be applied here.
         webView.loadDataWithBaseURL(baseUrl, html, mimeType, encoding, historyUrl)
     }
 
     override suspend fun loadHtmlFile(
         fileName: String,
-        additionalHttpHeaders: Map<String, String>
+        readType: WebViewFileReadType,
+        additionalHttpHeaders: Map<String, String>,
     ) {
-        KLogger.d {
-            "loadHtmlFile: $fileName"
+        KLogger.d { "loadHtmlFile: $fileName, readType: $readType" }
+        try {
+            val url =
+                when (readType) {
+                    WebViewFileReadType.ASSET_RESOURCES -> "file:///android_asset/$fileName"
+                    WebViewFileReadType.COMPOSE_RESOURCE_FILES -> fileName
+                }
+            webView.loadUrl(url, additionalHttpHeaders)
+        } catch (e: Exception) {
+            KLogger.e(e) { "Error loading HTML file: $fileName" }
+            val errorHtml =
+                "<html><body><h1>Error</h1><p>Could not load file: $fileName. Error: ${e.message}</p></body></html>"
+            webView.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
         }
-        webView.loadUrl("file:///android_asset/$fileName")
     }
 
     override fun postUrl(
         url: String,
-        postData: ByteArray, additionalHttpHeaders: Map<String, String>
+        postData: ByteArray,
+        additionalHttpHeaders: Map<String, String>,
     ) {
+        // Android WebView.postUrl has no headers argument; retained for fork source compatibility.
         webView.postUrl(url, postData)
     }
 
-    override fun goBack() {
-        webView.goBack()
-    }
+    override fun goBack() = webView.goBack()
 
-    override fun goForward() {
-        webView.goForward()
-    }
+    override fun goForward() = webView.goForward()
 
-    override fun reload() {
-        webView.reload()
-    }
+    override fun reload() = webView.reload()
 
-    override fun stopLoading() {
-        webView.stopLoading()
-    }
+    override fun stopLoading() = webView.stopLoading()
 
     override fun destroy() {
         webView.stopLoading()
-        webView.destroy()
-        if(webViewJsBridge!=null){
-            webView.removeJavascriptInterface(webViewJsBridge.jsBridgeName)
-        }
+        // The actual Android bridge is registered under this fixed interface name.
+        webView.removeJavascriptInterface("androidJsBridge")
+        // Also remove the historical dynamic name in case an older consumer registered it.
+        webViewJsBridge?.let { webView.removeJavascriptInterface(it.jsBridgeName) }
         webView.removeAllViews()
+        webView.destroy()
     }
 
     override fun evaluateJavaScript(
@@ -96,12 +100,9 @@ class AndroidWebView(
         callback: ((String) -> Unit)?,
     ) {
         val androidScript = "javascript:$script"
-        KLogger.d {
-            "evaluateJavaScript: $androidScript"
-        }
-        webView.post {
-            webView.evaluateJavascript(androidScript, callback)
-        }
+        KLogger.d { "evaluateJavaScript: $androidScript" }
+        // Keep upstream's direct call so headless/non-attached WebViews do not depend on View.post().
+        webView.evaluateJavascript(androidScript, callback)
     }
 
     override fun injectJsBridge() {
@@ -110,8 +111,8 @@ class AndroidWebView(
         val callAndroid =
             """
             window.${webViewJsBridge.jsBridgeName}.postMessage = function (message) {
-                    window.androidJsBridge.call(message)
-                };
+                window.androidJsBridge.call(message);
+            };
             """.trimIndent()
         evaluateJavaScript(callAndroid)
     }
@@ -119,14 +120,13 @@ class AndroidWebView(
     override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
         webView.addJavascriptInterface(this, "androidJsBridge")
     }
+
     @Suppress("unused")
     @JavascriptInterface
     fun call(request: String) {
         KLogger.d { "call from JS: $request" }
         val message = Json.decodeFromString<JsMessage>(request)
-        KLogger.d {
-            "call from JS: $message"
-        }
+        KLogger.d { "call from JS: $message" }
         webViewJsBridge?.dispatch(message)
     }
 
@@ -141,16 +141,10 @@ class AndroidWebView(
         webViewJsBridge?.dispatch(JsMessage(id, method, params))
     }
 
-    override fun scrollOffset(): Pair<Int, Int> {
-        return Pair(webView.scrollX, webView.scrollY)
-    }
+    override fun scrollOffset(): Pair<Int, Int> = Pair(webView.scrollX, webView.scrollY)
 
     override fun saveState(): WebViewBundle? {
         val bundle = WebViewBundle()
-        return if (webView.saveState(bundle) != null) {
-            bundle
-        } else {
-            null
-        }
+        return if (webView.saveState(bundle) != null) bundle else null
     }
 }

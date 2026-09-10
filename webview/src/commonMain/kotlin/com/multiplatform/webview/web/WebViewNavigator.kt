@@ -14,153 +14,98 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Created By Kevin Zou On 2023/9/5
- */
-
-sealed class WebViewEvent{
+sealed class WebViewEvent {
     data class JsAlert(
         val message: String,
-        val callback: () -> Unit = {}
+        val callback: () -> Unit = {},
     ) : WebViewEvent()
 }
 
-
-/**
- * Allows control over the navigation of a WebView from outside the composable. E.g. for performing
- * a back navigation in response to the user clicking the "up" button in a TopAppBar.
- *
- * @see [rememberWebViewNavigator]
- */
+/** Allows control over WebView navigation from outside the composable. */
 @Stable
 class WebViewNavigator(
-    private val coroutineScope: CoroutineScope,
+    val coroutineScope: CoroutineScope,
     val requestInterceptor: RequestInterceptor? = null,
-    private val interceptorEvent:((WebViewEvent)->Unit)? = null
+    private val interceptorEvent: ((WebViewEvent) -> Unit)? = null,
 ) {
-    /**
-     * Sealed class for constraining possible navigation events.
-     */
     private sealed interface NavigationEvent {
-        /**
-         * Navigate back event.
-         */
         data object Back : NavigationEvent
-
-        /**
-         * Navigate forward event.
-         */
         data object Forward : NavigationEvent
-
-        /**
-         * Reload event.
-         */
         data object Reload : NavigationEvent
-
-        /**
-         * Stop loading event.
-         */
         data object StopLoading : NavigationEvent
-        data object Destory : NavigationEvent
+        data object Destroy : NavigationEvent
 
-        /**
-         * Load url event.
-         */
         data class LoadUrl(
             val url: String,
             val additionalHttpHeaders: Map<String, String> = emptyMap(),
         ) : NavigationEvent
 
-        /**
-         * Load html event.
-         */
         data class LoadHtml(
             val html: String,
             val baseUrl: String? = null,
             val mimeType: String? = null,
             val encoding: String? = "utf-8",
             val historyUrl: String? = null,
+            val additionalHttpHeaders: Map<String, String> = emptyMap(),
         ) : NavigationEvent
 
         data class LoadHtmlFile(
             val fileName: String,
+            val readType: WebViewFileReadType = WebViewFileReadType.ASSET_RESOURCES,
+            val additionalHttpHeaders: Map<String, String> = emptyMap(),
         ) : NavigationEvent
 
-        /**
-         * Post url event.
-         */
         data class PostUrl(
             val url: String,
             val postData: ByteArray,
+            val additionalHttpHeaders: Map<String, String> = emptyMap(),
         ) : NavigationEvent {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
                 if (other == null || this::class != other::class) return false
-
                 other as PostUrl
-
-                if (url != other.url) return false
-                if (!postData.contentEquals(other.postData)) return false
-
-                return true
+                return url == other.url &&
+                    postData.contentEquals(other.postData) &&
+                    additionalHttpHeaders == other.additionalHttpHeaders
             }
 
             override fun hashCode(): Int {
                 var result = url.hashCode()
                 result = 31 * result + postData.contentHashCode()
+                result = 31 * result + additionalHttpHeaders.hashCode()
                 return result
             }
         }
 
-        /**
-         * Evaluate javascript event.
-         */
         data class EvaluateJavaScript(
             val script: String,
             val callback: ((String) -> Unit)?,
         ) : NavigationEvent
-
-
-
     }
 
-    /**
-     * A [MutableSharedFlow] of [NavigationEvent]s that is used to communicate navigation events
-     * from the composable to the [IWebView].
-     */
     private val navigationEvents: MutableSharedFlow<NavigationEvent> = MutableSharedFlow(replay = 1)
 
-
-    fun onJsAlert(message: String,callback: (() -> Unit)) {
-        interceptorEvent?.apply {
-            coroutineScope.launch {
-                invoke(WebViewEvent.JsAlert(message, callback = callback))
-            }
-        }
+    fun onJsAlert(
+        message: String,
+        callback: () -> Unit,
+    ) {
+        val handler = interceptorEvent ?: return
+        coroutineScope.launch { handler(WebViewEvent.JsAlert(message, callback)) }
     }
 
-
-     fun callNavigatorEvent(event: suspend()->Unit) {
-        coroutineScope.launch {
-            event()
-        }
+    fun callNavigatorEvent(event: suspend () -> Unit) {
+        coroutineScope.launch { event() }
     }
 
-
-    /**
-     * Handles navigation events from the composable and calls the appropriate method on the
-     * [IWebView].
-     * Use Dispatchers.Main to ensure that the webview methods are called on UI thread
-     */
     internal suspend fun IWebView.handleNavigationEvents(): Nothing =
         withContext(Dispatchers.Main) {
             navigationEvents.collect { event ->
                 when (event) {
-                    is NavigationEvent.Back -> goBack()
-                    is NavigationEvent.Forward -> goForward()
-                    is NavigationEvent.Reload -> reload()
-                    is NavigationEvent.StopLoading -> stopLoading()
-                    is NavigationEvent.Destory -> destroy()
+                    NavigationEvent.Back -> goBack()
+                    NavigationEvent.Forward -> goForward()
+                    NavigationEvent.Reload -> reload()
+                    NavigationEvent.StopLoading -> stopLoading()
+                    NavigationEvent.Destroy -> destroy()
                     is NavigationEvent.LoadHtml ->
                         loadHtml(
                             event.html,
@@ -168,73 +113,41 @@ class WebViewNavigator(
                             event.mimeType,
                             event.encoding,
                             event.historyUrl,
+                            event.additionalHttpHeaders,
                         )
-
-                    is NavigationEvent.LoadHtmlFile -> {
-                        loadHtmlFile(event.fileName)
-                    }
-
-                    is NavigationEvent.LoadUrl -> {
-                        loadUrl(event.url, event.additionalHttpHeaders)
-                    }
-
-                    is NavigationEvent.PostUrl -> {
-                        postUrl(event.url, event.postData)
-                    }
-
-                    is NavigationEvent.EvaluateJavaScript -> {
+                    is NavigationEvent.LoadHtmlFile ->
+                        loadHtmlFile(event.fileName, event.readType, event.additionalHttpHeaders)
+                    is NavigationEvent.LoadUrl -> loadUrl(event.url, event.additionalHttpHeaders)
+                    is NavigationEvent.PostUrl ->
+                        postUrl(event.url, event.postData, event.additionalHttpHeaders)
+                    is NavigationEvent.EvaluateJavaScript ->
                         evaluateJavaScript(event.script, event.callback)
-                    }
                 }
             }
         }
 
-    /**
-     * True when the web view is able to navigate backwards, false otherwise.
-     */
     var canGoBack: Boolean by mutableStateOf(false)
         internal set
 
-    /**
-     * True when the web view is able to navigate forwards, false otherwise.
-     */
     var canGoForward: Boolean by mutableStateOf(false)
         internal set
 
-    /**
-     * Loads the given URL.
-     *
-     * @param url The URL of the resource to load.
-     */
     fun loadUrl(
         url: String,
         additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) {
         coroutineScope.launch {
-            navigationEvents.emit(
-                NavigationEvent.LoadUrl(
-                    url,
-                    additionalHttpHeaders,
-                ),
-            )
+            navigationEvents.emit(NavigationEvent.LoadUrl(url, additionalHttpHeaders))
         }
     }
 
-    /**
-     * Loads the given HTML string.
-     *
-     * @param html The HTML string to load.
-     * @param baseUrl The URL to use as the page's base URL.
-     * @param mimeType The MIME type of the data in the string.
-     * @param encoding The encoding of the data in the string.
-     * @param historyUrl The history URL for the loaded HTML. Leave null to use about:blank.
-     */
     fun loadHtml(
         html: String,
         baseUrl: String? = null,
         mimeType: String? = null,
         encoding: String? = "utf-8",
         historyUrl: String? = null,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) {
         coroutineScope.launch {
             navigationEvents.emit(
@@ -244,100 +157,72 @@ class WebViewNavigator(
                     mimeType,
                     encoding,
                     historyUrl,
+                    additionalHttpHeaders,
                 ),
             )
         }
     }
 
-    fun loadHtmlFile(fileName: String) {
-        coroutineScope.launch {
-            navigationEvents.emit(
-                NavigationEvent.LoadHtmlFile(
-                    fileName,
-                ),
-            )
-        }
-    }
-
-    /**
-     * Posts the given data to the given URL.
-     *
-     * @param url The URL to post the data to.
-     * @param postData The data to post.
-     */
-    fun postUrl(
-        url: String,
-        postData: ByteArray,
+    fun loadHtmlFile(
+        fileName: String,
+        readType: WebViewFileReadType = WebViewFileReadType.ASSET_RESOURCES,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) {
         coroutineScope.launch {
             navigationEvents.emit(
-                NavigationEvent.PostUrl(
-                    url,
-                    postData,
-                ),
+                NavigationEvent.LoadHtmlFile(fileName, readType, additionalHttpHeaders),
             )
         }
     }
 
-    /**
-     * Evaluates the given JavaScript in the context of the currently displayed page.
-     *
-     * @param script The JavaScript to evaluate.
-     * @param callback A callback to be invoked when the script execution completes.
-     */
+    fun postUrl(
+        url: String,
+        postData: ByteArray,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
+    ) {
+        coroutineScope.launch {
+            navigationEvents.emit(NavigationEvent.PostUrl(url, postData, additionalHttpHeaders))
+        }
+    }
+
     fun evaluateJavaScript(
         script: String,
         callback: ((String) -> Unit)? = null,
     ) {
         coroutineScope.launch {
-            navigationEvents.emit(
-                NavigationEvent.EvaluateJavaScript(
-                    script,
-                    callback,
-                ),
-            )
+            navigationEvents.emit(NavigationEvent.EvaluateJavaScript(script, callback))
         }
     }
 
-    /**
-     * Navigates the webview back to the previous page.
-     */
     fun navigateBack() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Back) }
     }
 
-    /**
-     * Navigates the webview forward after going back from a page.
-     */
     fun navigateForward() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Forward) }
     }
 
-    /**
-     * Reloads the current page in the webview.
-     */
     fun reload() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Reload) }
     }
 
-    /**
-     * Stops the current page load (if one is loading).
-     */
     fun stopLoading() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
     }
-    fun destory() {
-        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Destory) }
+
+    fun destroy() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Destroy) }
     }
+
+    /** Historical misspelling kept for source compatibility. */
+    @Deprecated("Use destroy()", ReplaceWith("destroy()"))
+    fun destory() = destroy()
 }
 
-/**
- * Creates and remembers a [WebViewNavigator] using the default [CoroutineScope] or a provided
- * override.
- */
 @Composable
 fun rememberWebViewNavigator(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     requestInterceptor: RequestInterceptor? = null,
-): WebViewNavigator =
-    remember(coroutineScope) { WebViewNavigator(coroutineScope, requestInterceptor) }
+): WebViewNavigator = remember(coroutineScope, requestInterceptor) {
+    WebViewNavigator(coroutineScope, requestInterceptor)
+}
