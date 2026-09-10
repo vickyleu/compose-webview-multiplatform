@@ -22,6 +22,8 @@ class WasmJsWebView(
     override val scope: CoroutineScope,
     override val webViewJsBridge: WebViewJsBridge?,
 ) : IWebView {
+    private var bridgeMessageHandler: ((Event) -> Unit)? = null
+
     override fun canGoBack(): Boolean = runCatching { checkCanGoBackJs(element) }.getOrDefault(false)
 
     override fun canGoForward(): Boolean = runCatching { checkCanGoForwardJs(element) }.getOrDefault(false)
@@ -32,6 +34,7 @@ class WasmJsWebView(
     ) {
         // Browser iframes cannot attach arbitrary request headers. Keep the common API but do not
         // imply that headers are applied on WasmJS.
+        webViewJsBridge?.let(::ensureBridgeMessageHandler)
         runCatching { setUrlJs(element, url) }
         if (webViewJsBridge != null) {
             scope.launch {
@@ -53,6 +56,7 @@ class WasmJsWebView(
             if (html != null) {
                 val content =
                     if (webViewJsBridge != null) {
+                        ensureBridgeMessageHandler(webViewJsBridge)
                         injectBridgeIntoHtml(html, webViewJsBridge.jsBridgeName)
                     } else {
                         html
@@ -68,6 +72,7 @@ class WasmJsWebView(
         additionalHttpHeaders: Map<String, String>,
     ) {
         try {
+            webViewJsBridge?.let(::ensureBridgeMessageHandler)
             val url =
                 when (readType) {
                     WebViewFileReadType.ASSET_RESOURCES -> "assets/$fileName"
@@ -97,17 +102,29 @@ class WasmJsWebView(
         loadUrl(url, additionalHttpHeaders)
     }
 
-    override fun goBack() { runCatching { navigateBackJs(element) } }
+    override fun goBack() {
+        runCatching { navigateBackJs(element) }
+    }
 
-    override fun goForward() { runCatching { navigateForwardJs(element) } }
+    override fun goForward() {
+        runCatching { navigateForwardJs(element) }
+    }
 
-    override fun reload() { runCatching { reloadJs(element) } }
+    override fun reload() {
+        runCatching { reloadJs(element) }
+    }
 
-    override fun stopLoading() { runCatching { stopLoadingJs(element) } }
+    override fun stopLoading() {
+        runCatching { stopLoadingJs(element) }
+    }
 
     override fun destroy() {
         stopLoading()
-        (element.parentNode)?.removeChild(element)
+        bridgeMessageHandler?.let { handler ->
+            window.removeEventListener("message", handler)
+        }
+        bridgeMessageHandler = null
+        element.parentNode?.removeChild(element)
     }
 
     override fun evaluateJavaScript(
@@ -125,22 +142,52 @@ class WasmJsWebView(
 
     override fun injectJsBridge() {
         val bridge = webViewJsBridge ?: return
-        super.injectJsBridge()
+        ensureBridgeMessageHandler(bridge)
         evaluateJavaScript(createJsBridgeScript(bridge.jsBridgeName, true))
+    }
 
-        val messageHandler: (Event) -> Unit = { event ->
+    override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
+        ensureBridgeMessageHandler(webViewJsBridge)
+    }
+
+    override val consoleBridge: ConsoleBridge? = null
+
+    override fun saveState(): WebViewBundle? = null
+
+    override fun scrollOffset(): Pair<Int, Int> = 0 to 0
+
+    private fun ensureBridgeMessageHandler(bridge: WebViewJsBridge) {
+        if (bridgeMessageHandler != null) {
+            bridge.webView = this
+            return
+        }
+
+        val handler: (Event) -> Unit = { event ->
             val messageEvent = event as MessageEvent
             val iframe = element as? HTMLIFrameElement
             if (iframe != null && messageEvent.source == iframe.contentWindow && messageEvent.data != null) {
                 runCatching {
                     val dataString = messageEvent.data.toString()
                     if (dataString.contains(bridge.jsBridgeName)) {
-                        val action = """action[=:][\s]*['\"](.*?)['\"]""".toRegex()
-                            .find(dataString)?.groupValues?.get(1)
-                        val params = """params[=:][\s]*['\"](.*?)['\"]""".toRegex()
-                            .find(dataString)?.groupValues?.get(1) ?: "{}"
-                        val callbackId = """callbackId[=:][\s]*(\d+)""".toRegex()
-                            .find(dataString)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                        val action =
+                            """action[=:][\s]*['\"](.*?)['\"]"""
+                                .toRegex()
+                                .find(dataString)
+                                ?.groupValues
+                                ?.get(1)
+                        val params =
+                            """params[=:][\s]*['\"](.*?)['\"]"""
+                                .toRegex()
+                                .find(dataString)
+                                ?.groupValues
+                                ?.get(1) ?: "{}"
+                        val callbackId =
+                            """callbackId[=:][\s]*(\d+)"""
+                                .toRegex()
+                                .find(dataString)
+                                ?.groupValues
+                                ?.get(1)
+                                ?.toIntOrNull() ?: 0
                         if (action != null) {
                             bridge.dispatch(
                                 JsMessage(
@@ -154,17 +201,11 @@ class WasmJsWebView(
                 }
             }
         }
-        window.addEventListener("message", messageHandler)
+
+        window.addEventListener("message", handler)
+        bridgeMessageHandler = handler
         bridge.webView = this
     }
-
-    override fun initJsBridge(webViewJsBridge: WebViewJsBridge) = Unit
-
-    override val consoleBridge: ConsoleBridge? = null
-
-    override fun saveState(): WebViewBundle? = null
-
-    override fun scrollOffset(): Pair<Int, Int> = 0 to 0
 
     private fun injectBridgeIntoHtml(
         htmlContent: String,
