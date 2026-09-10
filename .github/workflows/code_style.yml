@@ -10,11 +10,11 @@ jobs:
   check-code-style:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '17'
-      - name: Check code style
+      - name: Check webview code style
         shell: bash
-        run: ./gradlew ktlintCheck
+        run: ./gradlew :webview:ktlintCheck
