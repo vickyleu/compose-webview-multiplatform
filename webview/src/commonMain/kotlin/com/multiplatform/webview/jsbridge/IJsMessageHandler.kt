@@ -5,41 +5,36 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * Created By Kevin Zou On 2023/10/31
- */
-
-/**
- * The Interface for handling JS messages.
+ * The interface for handling JS messages.
+ *
+ * The callback/parameter metadata below is a fork extension used to generate
+ * strongly-shaped JavaScript delegate methods. Defaults keep upstream handlers
+ * source-compatible while preserving the extended API for existing consumers.
  */
 interface IJsMessageHandler {
-    /**
-     * The name of the method that will be called on the JS side.
-     */
+    /** The name of the method that will be called on the JS side. */
     fun methodName(): String
 
-    fun isSyncCallbackMethod():Boolean
+    /** Whether this handler expects a callback with synchronous-style semantics. */
+    fun isSyncCallbackMethod(): Boolean = false
 
-    fun isAsyncCallbackMethod():Boolean
-
+    /** Whether this handler expects an asynchronous callback. */
+    fun isAsyncCallbackMethod(): Boolean = false
 
     fun canHandle(methodName: String) = methodName() == methodName
 
-
-    /**
-     * The number of parameters that the method takes.
-     */
+    /** Maximum number of parameters accepted by the generated JS delegate. */
     fun methodParamCount(): Int = 1
 
-    /**
-     * The number of parameters that the method minimal takes.
-     */
-    fun minimalParamCount() = methodParamCount()
+    /** Minimum number of parameters accepted by the generated JS delegate. */
+    fun minimalParamCount(): Int = methodParamCount()
 
     /**
-     * The logic to handle the JS message.
-     * @param message The message that was dispatched from JS.
-     * @param navigator The navigator that can be used to control the WebView.
-     * @param callback The callback that can be used to send data back to JS.
+     * Handle a message dispatched from JavaScript.
+     *
+     * @param message The message dispatched from JS.
+     * @param navigator Navigator that can control the WebView.
+     * @param callback Callback used to return data to JS.
      */
     fun handle(
         message: JsMessage,
@@ -48,16 +43,10 @@ interface IJsMessageHandler {
     )
 }
 
-/**
- * Decode the params of [JsMessage] to the given type.
- */
-inline fun <reified T : Any> IJsMessageHandler.processParams(message: JsMessage): T {
-    return Json.decodeFromString(message.params)
-}
+/** Decode [JsMessage.params] to [T]. */
+inline fun <reified T : Any> IJsMessageHandler.processParams(message: JsMessage): T =
+    Json.decodeFromString(message.params)
 
-/**
- * Encode the given data to a JSON string.
- */
-inline fun <reified T : Any> IJsMessageHandler.dataToJsonString(res: T): String {
-    return Json.encodeToString(res)
-}
+/** Encode [res] to a JSON string. */
+inline fun <reified T : Any> IJsMessageHandler.dataToJsonString(res: T): String =
+    Json.encodeToString(res)
