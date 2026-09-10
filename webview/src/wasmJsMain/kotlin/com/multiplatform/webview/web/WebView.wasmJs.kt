@@ -9,11 +9,8 @@ import com.multiplatform.webview.jsbridge.ConsoleBridge
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import kotlinx.browser.document
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLIFrameElement
-import org.w3c.dom.MessageEvent
-import org.w3c.dom.events.Event
 
 actual class WebViewFactoryParam {
     var container: Element = document.body!!
@@ -75,24 +72,6 @@ actual fun ActualWebView(
         }
     }
 
-    LaunchedEffect(state.content) {
-        when (val content = state.content) {
-            is WebContent.Url -> htmlViewState.content = HtmlContent.Url(content.url, content.additionalHttpHeaders)
-            is WebContent.Data -> {
-                val html = if (webViewJsBridge != null) {
-                    injectJsBridgeToHtml(content.data, webViewJsBridge.jsBridgeName)
-                } else content.data
-                htmlViewState.content = HtmlContent.Data(html, content.baseUrl, content.mimeType, content.encoding, content.historyUrl)
-            }
-            is WebContent.File -> {
-                state.webView?.loadHtmlFile(content.fileName, content.readType, content.additionalHttpHeaders)
-                    ?: run { htmlViewState.loadingState = HtmlLoadingState.Loading }
-            }
-            is WebContent.Post -> state.webView?.postUrl(content.url, content.postData, content.additionalHttpHeaders)
-            WebContent.NavigatorOnly -> Unit
-        }
-    }
-
     LaunchedEffect(htmlViewState.lastLoadedUrl, htmlViewState.pageTitle, htmlViewState.loadingState) {
         state.lastLoadedUrl = htmlViewState.lastLoadedUrl
         state.pageTitle = htmlViewState.pageTitle
@@ -100,7 +79,9 @@ actual fun ActualWebView(
             HtmlLoadingState.Loading -> LoadingState.Loading(0f)
             is HtmlLoadingState.Finished -> if (loading.isError) {
                 LoadingState.ErrorLoading(loading.errorMessage ?: "Failed to load content")
-            } else LoadingState.Finished
+            } else {
+                LoadingState.Finished
+            }
             HtmlLoadingState.Initializing -> LoadingState.Initializing
         }
     }
@@ -111,18 +92,23 @@ actual fun ActualWebView(
         navigator = htmlNavigator,
         onCreated = { element ->
             val param = WebViewFactoryParam().apply { existingElement = element as? HTMLIFrameElement }
-            val native = if (state.webSettings.wasmJSWebSettings.let {
-                    it.backgroundColor != null || it.showBorder || it.enableSandbox ||
-                        it.customContainerStyle != null || it.enableConsoleLogging
-                }) createWebViewWithSettings(param, state.webSettings) else factory(param)
+            val native =
+                if (state.webSettings.wasmJSWebSettings.let {
+                        it.backgroundColor != null ||
+                            it.showBorder ||
+                            it.enableSandbox ||
+                            it.customContainerStyle != null ||
+                            it.enableConsoleLogging
+                    }
+                ) {
+                    createWebViewWithSettings(param, state.webSettings)
+                } else {
+                    factory(param)
+                }
             val wrapper = WasmJsWebView(element, native, scope, webViewJsBridge)
             state.webView = wrapper
             webViewJsBridge?.webView = wrapper
             wrapper.initWebView()
-            if (state.content is WebContent.File) {
-                val content = state.content as WebContent.File
-                scope.launch { wrapper.loadHtmlFile(content.fileName, content.readType, content.additionalHttpHeaders) }
-            }
             onCreated(native)
         },
         onDispose = {
