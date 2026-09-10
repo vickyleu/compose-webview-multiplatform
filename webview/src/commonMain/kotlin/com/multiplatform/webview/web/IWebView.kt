@@ -93,8 +93,13 @@ interface IWebView {
 
     fun stopLoading()
 
-    /** Fork extension retained for deterministic resource cleanup. */
-    fun destroy()
+    /**
+     * Fork extension retained for deterministic resource cleanup.
+     * Platforms without native teardown semantics may use this safe default.
+     */
+    fun destroy() {
+        stopLoading()
+    }
 
     fun evaluateJavaScript(
         script: String,
