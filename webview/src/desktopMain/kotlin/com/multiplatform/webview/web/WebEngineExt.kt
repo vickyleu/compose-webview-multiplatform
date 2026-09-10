@@ -11,84 +11,41 @@ import org.cef.handler.CefDisplayHandler
 import org.cef.handler.CefLoadHandler
 import org.cef.handler.CefRequestHandlerAdapter
 import org.cef.network.CefRequest
-import kotlin.math.abs
-import kotlin.math.ln
 
-/**
- * Created By Kevin Zou On 2023/9/12
- */
-internal fun CefBrowser.getCurrentUrl(): String? {
-    return this.url
-}
+internal fun CefBrowser.getCurrentUrl(): String? = url
 
 internal fun CefBrowser.addDisplayHandler(state: WebViewState) {
-    this.client.addDisplayHandler(
+    client.addDisplayHandler(
         object : CefDisplayHandler {
-            override fun onAddressChange(
-                browser: CefBrowser?,
-                frame: CefFrame?,
-                url: String?,
-            ) {
+            override fun onAddressChange(browser: CefBrowser?, frame: CefFrame?, url: String?) {
                 KLogger.d { "onAddressChange: $url" }
                 state.lastLoadedUrl = getCurrentUrl()
             }
 
-            override fun onTitleChange(
-                browser: CefBrowser?,
-                title: String?,
-            ) {
-                // https://magpcss.org/ceforum/viewtopic.php?t=11491
-                // https://github.com/KevinnZou/compose-webview-multiplatform/issues/46
-                val givenZoomLevel = state.webSettings.zoomLevel
-                val realZoomLevel =
-                    if (givenZoomLevel >= 0.0) {
-                        ln(abs(givenZoomLevel)) / ln(1.2)
-                    } else {
-                        -ln(abs(givenZoomLevel)) / ln(1.2)
-                    }
-                KLogger.d { "titleProperty: $title" }
+            override fun onTitleChange(browser: CefBrowser?, title: String?) {
+                val percentage = state.webSettings.zoomLevel * 100.0
+                val realZoomLevel = (percentage - 100.0) / 25.0
                 zoomLevel = realZoomLevel
                 state.pageTitle = title
             }
 
-            override fun onTooltip(
-                browser: CefBrowser?,
-                text: String?,
-            ): Boolean {
-                return false
-            }
-
-            override fun onStatusMessage(
-                browser: CefBrowser?,
-                value: String?,
-            ) {
-            }
-
+            override fun onFullscreenModeChange(p0: CefBrowser?, p1: Boolean) = Unit
+            override fun onTooltip(browser: CefBrowser?, text: String?) = false
+            override fun onStatusMessage(browser: CefBrowser?, value: String?) = Unit
             override fun onConsoleMessage(
                 browser: CefBrowser?,
                 level: CefSettings.LogSeverity?,
                 message: String?,
                 source: String?,
                 line: Int,
-            ): Boolean {
-                return false
-            }
-
-            override fun onCursorChange(
-                browser: CefBrowser?,
-                cursorType: Int,
-            ): Boolean {
-                return false
-            }
+            ) = false
+            override fun onCursorChange(browser: CefBrowser?, cursorType: Int) = false
         },
     )
 }
 
-internal fun CefBrowser.addLoadListener(
-    state: WebViewState,
-    navigator: WebViewNavigator,
-) {
-    this.client.addLoadHandler(
+internal fun CefBrowser.addLoadListener(state: WebViewState, navigator: WebViewNavigator) {
+    client.addLoadHandler(
         object : CefLoadHandler {
             private var lastLoadedUrl = "null"
 
@@ -98,9 +55,6 @@ internal fun CefBrowser.addLoadListener(
                 canGoBack: Boolean,
                 canGoForward: Boolean,
             ) {
-                KLogger.d {
-                    "onLoadingStateChange: $url, $isLoading $canGoBack $canGoForward"
-                }
                 if (isLoading) {
                     state.loadingState = LoadingState.Initializing
                 } else {
@@ -114,26 +68,16 @@ internal fun CefBrowser.addLoadListener(
                 navigator.canGoForward = canGoForward
             }
 
-            override fun onLoadStart(
-                browser: CefBrowser?,
-                frame: CefFrame?,
-                transitionType: CefRequest.TransitionType?,
-            ) {
-                KLogger.d { "Load Start ${browser?.url}" }
-                lastLoadedUrl = "null" // clean last loaded url for reload to work
+            override fun onLoadStart(browser: CefBrowser?, frame: CefFrame?, transitionType: CefRequest.TransitionType?) {
+                lastLoadedUrl = "null"
                 state.loadingState = LoadingState.Loading(0F)
                 state.errorsForCurrentRequest.clear()
             }
 
-            override fun onLoadEnd(
-                browser: CefBrowser?,
-                frame: CefFrame?,
-                httpStatusCode: Int,
-            ) {
-                KLogger.d { "Load End ${browser?.url}" }
+            override fun onLoadEnd(browser: CefBrowser?, frame: CefFrame?, httpStatusCode: Int) {
                 state.loadingState = LoadingState.Finished
                 navigator.canGoBack = canGoBack()
-                navigator.canGoBack = canGoForward()
+                navigator.canGoForward = canGoForward()
                 state.lastLoadedUrl = getCurrentUrl()
             }
 
@@ -145,14 +89,12 @@ internal fun CefBrowser.addLoadListener(
                 failedUrl: String?,
             ) {
                 state.loadingState = LoadingState.Finished
-                // TODO Error
-                KLogger.i {
-                    "Failed to load url: $errorCode ${failedUrl}\n$errorText"
-                }
+                KLogger.i { "Failed to load url: $errorCode $failedUrl\n$errorText" }
                 state.errorsForCurrentRequest.add(
                     WebViewError(
                         code = errorCode?.code ?: 404,
-                        description = "Failed to load url: ${failedUrl}\n$errorText",
+                        description = "Failed to load url: $failedUrl\n$errorText",
+                        isFromMainFrame = frame?.isMain ?: false,
                     ),
                 )
             }
@@ -160,10 +102,7 @@ internal fun CefBrowser.addLoadListener(
     )
 }
 
-internal fun KCEFBrowser.addRequestHandler(
-    state: WebViewState,
-    navigator: WebViewNavigator,
-) {
+internal fun KCEFBrowser.addRequestHandler(state: WebViewState, navigator: WebViewNavigator) {
     client.addRequestHandler(
         object : CefRequestHandlerAdapter() {
             override fun onBeforeBrowse(
@@ -173,36 +112,23 @@ internal fun KCEFBrowser.addRequestHandler(
                 userGesture: Boolean,
                 isRedirect: Boolean,
             ): Boolean {
-                navigator.requestInterceptor?.apply {
-                    val map = mutableMapOf<String, String>()
-                    request?.getHeaderMap(map)
-                    KLogger.d { "onBeforeBrowse ${request?.url} $map" }
+                navigator.requestInterceptor?.let { interceptor ->
+                    val headers = mutableMapOf<String, String>()
+                    request?.getHeaderMap(headers)
                     val webRequest =
                         WebRequest(
                             request?.url.toString(),
-                            map,
+                            headers,
                             isForMainFrame = frame?.isMain ?: false,
                             isRedirect = isRedirect,
                             request?.method ?: "GET",
                         )
-                    val interceptResult =
-                        this.onInterceptUrlRequest(
-                            webRequest,
-                            navigator,
-                        )
-                    return when (interceptResult) {
-                        is WebRequestInterceptResult.Allow -> {
+                    return when (val result = interceptor.onInterceptUrlRequest(webRequest, navigator)) {
+                        is WebRequestInterceptResult.Allow ->
                             super.onBeforeBrowse(browser, frame, request, userGesture, isRedirect)
-                        }
-
-                        is WebRequestInterceptResult.Reject -> {
-                            true
-                        }
-
+                        is WebRequestInterceptResult.Reject -> true
                         is WebRequestInterceptResult.Modify -> {
-                            interceptResult.request.apply {
-                                navigator.loadUrl(this.url, this.headers)
-                            }
+                            navigator.loadUrl(result.request.url, result.request.headers)
                             true
                         }
                     }
